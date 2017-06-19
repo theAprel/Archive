@@ -33,6 +33,13 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -43,12 +50,34 @@ import org.w3c.dom.Element;
 public class FileWalker implements FileVisitor<Path> {
     
     private final Path base;
-    private static final boolean useFFprobe = true;
+    private static boolean useFFprobe;
     private static Document doc;
     private static Element rootElement;
     
+    private static final String OPTION_PATH = "p";
+    private static final String OPTION_NO_FFPROBE = "no-ffprobe";
+    
     public static void main(String[] args) throws Exception {
-        Path p = Paths.get(args[0]);
+        Options options = new Options();
+        options.addOption(Option.builder(OPTION_PATH).required().longOpt("path")
+                .desc("root directory from which to traverse files").numberOfArgs(1).build());
+        options.addOption(Option.builder().longOpt(OPTION_NO_FFPROBE)
+                .desc("do not generate media metadata for .wtv files").numberOfArgs(0).build());
+        
+        CommandLineParser parser = new DefaultParser();
+        HelpFormatter formatter = new HelpFormatter();
+        CommandLine cmd;
+        try {
+            cmd = parser.parse(options, args);
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            formatter.printHelp(FileWalker.class.getSimpleName(), options);
+
+            System.exit(1);
+            return;
+        }
+        useFFprobe = !cmd.hasOption(OPTION_NO_FFPROBE);
+        Path p = Paths.get(cmd.getOptionValue(OPTION_PATH));
         String outFileLocation = p.toString()+ "/METADATA.xml";
         File outFile = new File(outFileLocation);
         if(outFile.exists()) {
@@ -91,10 +120,10 @@ public class FileWalker implements FileVisitor<Path> {
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
         final Path relative = base.relativize(file);
         System.out.println("Found file " + relative);
+        final Element fileElement = doc.createElement("FILE");
+        fileElement.setAttribute("path", relative.toString());
+        rootElement.appendChild(fileElement);
         if(useFFprobe && file.toString().endsWith(".wtv")) {
-            final Element fileElement = doc.createElement("FILE");
-            fileElement.setAttribute("path", relative.toString());
-            rootElement.appendChild(fileElement);
             ProcessBuilder pb = new ProcessBuilder("ffprobe", file.toString());
             Process p = pb.start();
             try {
