@@ -51,18 +51,22 @@ public class FileWalker implements FileVisitor<Path> {
     
     private final Path base;
     private static boolean useFFprobe;
+    private static boolean noRecursion;
     private static Document doc;
     private static Element rootElement;
     
     private static final String OPTION_PATH = "p";
     private static final String OPTION_NO_FFPROBE = "no-ffprobe";
+    private static final String OPTION_NO_RECURSION = "no-recursion";
     
     public static void main(String[] args) throws Exception {
         Options options = new Options();
         options.addOption(Option.builder(OPTION_PATH).required().longOpt("path")
                 .desc("root directory from which to traverse files").numberOfArgs(1).build());
-        options.addOption(Option.builder().longOpt(OPTION_NO_FFPROBE)
-                .desc("do not generate media metadata for .wtv files").numberOfArgs(0).build());
+        options.addOption(Option.builder().longOpt(OPTION_NO_FFPROBE).numberOfArgs(0)
+                .desc("do not generate media metadata for .wtv files").build());
+        options.addOption(Option.builder().longOpt(OPTION_NO_RECURSION).numberOfArgs(0)
+                .desc("do not enter any directory besides root directory").build());
         
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -77,6 +81,7 @@ public class FileWalker implements FileVisitor<Path> {
             return;
         }
         useFFprobe = !cmd.hasOption(OPTION_NO_FFPROBE);
+        noRecursion = cmd.hasOption(OPTION_NO_RECURSION);
         Path p = Paths.get(cmd.getOptionValue(OPTION_PATH));
         String outFileLocation = p.toString()+ "/METADATA.xml";
         File outFile = new File(outFileLocation);
@@ -111,6 +116,8 @@ public class FileWalker implements FileVisitor<Path> {
 
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+        if(noRecursion && !dir.equals(base))
+            return FileVisitResult.SKIP_SUBTREE;
         final Path relative = base.relativize(dir);
         System.out.println("Entering directory " + relative);
         return FileVisitResult.CONTINUE;
