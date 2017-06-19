@@ -18,6 +18,7 @@ package aprel;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -30,6 +31,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -59,11 +62,13 @@ public class FileWalker implements FileVisitor<Path> {
     private static boolean doMd5;
     private static Document doc;
     private static Element rootElement;
+    private static Map<String, String> md5Map = null;
     
     private static final String OPTION_PATH = "p";
     private static final String OPTION_NO_FFPROBE = "no-ffprobe";
     private static final String OPTION_NO_RECURSION = "no-recursion";
     private static final String OPTION_NO_MD5 = "no-md5";
+    private static final String OPTION_MD5_FILE = "m";
     
     public static void main(String[] args) throws Exception {
         Options options = new Options();
@@ -75,6 +80,10 @@ public class FileWalker implements FileVisitor<Path> {
                 .desc("do not enter any directory besides root directory").build());
         options.addOption(Option.builder().longOpt(OPTION_NO_MD5).numberOfArgs(0)
                 .desc("do not generate MD5 checksums of files").build());
+        options.addOption(Option.builder(OPTION_MD5_FILE).longOpt("md5-file")
+                .desc("import MD5 checksums from file. Files not listed in the "
+                        + "MD5-checksum file will be generated unless --" + OPTION_NO_MD5
+                + " is set").numberOfArgs(1).build());
         
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -91,6 +100,21 @@ public class FileWalker implements FileVisitor<Path> {
         useFFprobe = !cmd.hasOption(OPTION_NO_FFPROBE);
         noRecursion = cmd.hasOption(OPTION_NO_RECURSION);
         doMd5 = !cmd.hasOption(OPTION_NO_MD5);
+        if(cmd.hasOption(OPTION_MD5_FILE)) {
+            md5Map = new HashMap<>();
+            String md5File = cmd.getOptionValue(OPTION_MD5_FILE);
+            BufferedReader reader = new BufferedReader(new FileReader(md5File));
+            String line;
+            while((line = reader.readLine()) != null) {
+                if(line.trim().length() == 0)
+                    continue;
+                String[] parts = line.split("  ", 2);
+                String file = parts[1];
+                String checksum = parts[0];
+                md5Map.put(file, checksum);
+            }
+            reader.close();
+        }
         if(doMd5)
             System.out.println("MD5 hash is slow; consider using another program for hashing.");
         Path p = Paths.get(cmd.getOptionValue(OPTION_PATH));
@@ -141,7 +165,11 @@ public class FileWalker implements FileVisitor<Path> {
         final Element fileElement = doc.createElement("FILE");
         fileElement.setAttribute("path", relative.toString());
         rootElement.appendChild(fileElement);
-        if(doMd5) {
+        String md5String = null;
+        if(md5Map != null) {
+            md5String = md5Map.get(relative.toString());
+        }
+        if(doMd5 && md5String == null) {
             MessageDigest md = null;
             try {
                 md = MessageDigest.getInstance("MD5");
@@ -160,11 +188,16 @@ public class FileWalker implements FileVisitor<Path> {
                     //keep reading bytes into the digest
                 }
                 byte[] md5Bytes = md.digest();
-                String md5String = javax.xml.bind.DatatypeConverter.printHexBinary(md5Bytes);
-                Element md5Element = doc.createElement("MD5");
-                md5Element.setTextContent(md5String);
-                fileElement.appendChild(md5Element);
+                md5String = javax.xml.bind.DatatypeConverter.printHexBinary(md5Bytes);
             }
+        }
+        if(md5String != null) {
+            Element md5Element = doc.createElement("MD5");
+            md5Element.setTextContent(md5String);
+            fileElement.appendChild(md5Element);
+        }
+        else {
+            System.out.println("WARNING: " + relative + " has not been assigned a checksum.");
         }
         if(useFFprobe && file.toString().endsWith(".wtv")) {
             ProcessBuilder pb = new ProcessBuilder("ffprobe", file.toString());
