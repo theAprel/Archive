@@ -26,16 +26,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.LinkedList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 /**
  *
@@ -44,40 +43,47 @@ import org.w3c.dom.Document;
 public class FileWalker implements FileVisitor<Path> {
     
     private final Path base;
-    private final DirectoryNode root;
-    private DirectoryNode currentDir;
-    private final LinkedList<DirectoryNode> walkPath;
     private static final boolean useFFprobe = true;
+    private static Document doc;
+    private static Element rootElement;
     
     public static void main(String[] args) throws Exception {
-        Path p = Paths.get(System.getProperty("user.home") + "/Videos");
+        Path p = Paths.get(args[0]);
+        String outFileLocation = p.toString()+ "/METADATA.xml";
+        File outFile = new File(outFileLocation);
+        if(outFile.exists()) {
+            System.err.println(outFileLocation + " already exists.\nDelete file"
+                    + " to before running this program.");
+            System.exit(-1);
+        }
+        
+        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+        doc = docBuilder.newDocument();
+        rootElement = doc.createElement("FILES");
+        doc.appendChild(rootElement);
+        
         FileWalker fw = new FileWalker(p);
         Files.walkFileTree(p, fw);
-        Document doc = fw.toXml();
+        
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         Transformer transformer = transformerFactory.newTransformer();
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+        transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
         DOMSource source = new DOMSource(doc);
-        StreamResult result = new StreamResult(new File("/tmp/output.xml"));
+        StreamResult result = new StreamResult(outFile);
         transformer.transform(source, result);
     }
     
     public FileWalker(Path base) {
         this.base = base;
-        root = new DirectoryNode("root");
-        currentDir = root;
-        walkPath = new LinkedList<>();
     }
 
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
         final Path relative = base.relativize(dir);
         System.out.println("Entering directory " + relative);
-        walkPath.push(currentDir);
-        final DirectoryNode newDir = new DirectoryNode(dir.getFileName().toString());
-        currentDir.addFile(newDir);
-        currentDir = newDir;
         return FileVisitResult.CONTINUE;
     }
 
@@ -85,8 +91,10 @@ public class FileWalker implements FileVisitor<Path> {
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
         final Path relative = base.relativize(file);
         System.out.println("Found file " + relative);
-        final FileNode fileNode = new FileNode(file.getFileName().toString());
         if(useFFprobe && file.toString().endsWith(".wtv")) {
+            final Element fileElement = doc.createElement("FILE");
+            fileElement.setAttribute("path", relative.toString());
+            rootElement.appendChild(fileElement);
             ProcessBuilder pb = new ProcessBuilder("ffprobe", file.toString());
             Process p = pb.start();
             try {
@@ -104,12 +112,37 @@ public class FileWalker implements FileVisitor<Path> {
                 BufferedReader ffprobe = new BufferedReader(new InputStreamReader(p.getErrorStream()));
                 String line;
                 while((line = ffprobe.readLine())!=null) {
-                    System.out.println(line);
+                    String[] parts = line.split(":", 2);
+                    String possibleKey = parts[0].trim();
+                    WtvMetadata corresponding = null;
+                    for(WtvMetadata wtvMeta : WtvMetadata.values()) {
+                        if(possibleKey.equals(wtvMeta.getWtvMetadataKey())) {
+                            corresponding = wtvMeta;
+                            break;
+                        }
+                    }
+                    if(corresponding != null) {
+                        String value = parts[1].trim();
+                        String append = "";
+                        if(corresponding == WtvMetadata.DURATION) {
+                            //ffprobe/WTV has two duration values: one as
+                            //100*nanoseconds and another as hrs:mins:secs.fraction
+                            String durationParts[] = value.split(",");
+                            if(durationParts.length > 1) { //is hrs:mins:secs
+                                append = "_READABLE";
+                                value = durationParts[0];
+                            }
+                            else {
+                                append = "_100NANOS";
+                            }
+                        }
+                        Element wtvData = doc.createElement(corresponding.name() + append);
+                        wtvData.setTextContent(value);
+                        fileElement.appendChild(wtvData);
+                    }
                 }
             }
         }
-        
-        currentDir.addFile(fileNode);
         return FileVisitResult.CONTINUE;
     }
 
@@ -123,16 +156,6 @@ public class FileWalker implements FileVisitor<Path> {
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
         System.out.println("Exiting directory " + base.relativize(dir));
-        currentDir = walkPath.pop();
         return FileVisitResult.CONTINUE;
     }
-    
-    public Document toXml() throws ParserConfigurationException {
-        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-        Document doc = docBuilder.newDocument();
-        root.toXml(doc, doc);
-        return doc;
-    }
-
 }
