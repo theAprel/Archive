@@ -19,6 +19,7 @@ package aprel;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -26,6 +27,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -52,12 +56,14 @@ public class FileWalker implements FileVisitor<Path> {
     private final Path base;
     private static boolean useFFprobe;
     private static boolean noRecursion;
+    private static boolean doMd5;
     private static Document doc;
     private static Element rootElement;
     
     private static final String OPTION_PATH = "p";
     private static final String OPTION_NO_FFPROBE = "no-ffprobe";
     private static final String OPTION_NO_RECURSION = "no-recursion";
+    private static final String OPTION_NO_MD5 = "no-md5";
     
     public static void main(String[] args) throws Exception {
         Options options = new Options();
@@ -67,6 +73,8 @@ public class FileWalker implements FileVisitor<Path> {
                 .desc("do not generate media metadata for .wtv files").build());
         options.addOption(Option.builder().longOpt(OPTION_NO_RECURSION).numberOfArgs(0)
                 .desc("do not enter any directory besides root directory").build());
+        options.addOption(Option.builder().longOpt(OPTION_NO_MD5).numberOfArgs(0)
+                .desc("do not generate MD5 checksums of files").build());
         
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -82,6 +90,9 @@ public class FileWalker implements FileVisitor<Path> {
         }
         useFFprobe = !cmd.hasOption(OPTION_NO_FFPROBE);
         noRecursion = cmd.hasOption(OPTION_NO_RECURSION);
+        doMd5 = !cmd.hasOption(OPTION_NO_MD5);
+        if(doMd5)
+            System.out.println("MD5 hash is slow; consider using another program for hashing.");
         Path p = Paths.get(cmd.getOptionValue(OPTION_PATH));
         String outFileLocation = p.toString()+ "/METADATA.xml";
         File outFile = new File(outFileLocation);
@@ -130,6 +141,31 @@ public class FileWalker implements FileVisitor<Path> {
         final Element fileElement = doc.createElement("FILE");
         fileElement.setAttribute("path", relative.toString());
         rootElement.appendChild(fileElement);
+        if(doMd5) {
+            MessageDigest md = null;
+            try {
+                md = MessageDigest.getInstance("MD5");
+            }
+            catch(NoSuchAlgorithmException ex) {
+                System.err.println("CRITICAL: This JVM has no MD5 checksum implementation!");
+                ex.printStackTrace();
+                System.exit(-1);
+            }
+            try (InputStream is = Files.newInputStream(Paths.get(file.toString()));
+                    DigestInputStream dis = new DigestInputStream(is, md)) {
+                //https://stackoverflow.com/questions/304268/getting-a-files-md5-checksum-in-java
+                /* Read decorated stream (dis) to EOF as normal... */
+                final int bufferSize = 1024*1024*1024;
+                while(dis.read(new byte[bufferSize]) != -1) {
+                    //keep reading bytes into the digest
+                }
+                byte[] md5Bytes = md.digest();
+                String md5String = javax.xml.bind.DatatypeConverter.printHexBinary(md5Bytes);
+                Element md5Element = doc.createElement("MD5");
+                md5Element.setTextContent(md5String);
+                fileElement.appendChild(md5Element);
+            }
+        }
         if(useFFprobe && file.toString().endsWith(".wtv")) {
             ProcessBuilder pb = new ProcessBuilder("ffprobe", file.toString());
             Process p = pb.start();
