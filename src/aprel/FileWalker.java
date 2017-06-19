@@ -47,6 +47,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -63,6 +65,7 @@ public class FileWalker implements FileVisitor<Path> {
     private static Document doc;
     private static Element rootElement;
     private static Map<String, String> md5Map = null;
+    private static final Logger LOG = LoggerFactory.getLogger(FileWalker.class);
     
     private static final String OPTION_PATH = "p";
     private static final String OPTION_NO_FFPROBE = "no-ffprobe";
@@ -154,14 +157,14 @@ public class FileWalker implements FileVisitor<Path> {
         if(noRecursion && !dir.equals(base))
             return FileVisitResult.SKIP_SUBTREE;
         final Path relative = base.relativize(dir);
-        System.out.println("Entering directory " + relative);
+        LOG.info("Entering directory " + relative);
         return FileVisitResult.CONTINUE;
     }
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
         final Path relative = base.relativize(file);
-        System.out.println("Found file " + relative);
+        LOG.info("Found file " + relative);
         final Element fileElement = doc.createElement("FILE");
         fileElement.setAttribute("path", relative.toString());
         rootElement.appendChild(fileElement);
@@ -175,8 +178,7 @@ public class FileWalker implements FileVisitor<Path> {
                 md = MessageDigest.getInstance("MD5");
             }
             catch(NoSuchAlgorithmException ex) {
-                System.err.println("CRITICAL: This JVM has no MD5 checksum implementation!");
-                ex.printStackTrace();
+                LOG.error("This JVM has no MD5 checksum implementation!", ex);
                 System.exit(-1);
             }
             try (InputStream is = Files.newInputStream(Paths.get(file.toString()));
@@ -197,7 +199,7 @@ public class FileWalker implements FileVisitor<Path> {
             fileElement.appendChild(md5Element);
         }
         else {
-            System.out.println("WARNING: " + relative + " has not been assigned a checksum.");
+            LOG.warn(relative + " has not been assigned a checksum.");
         }
         if(useFFprobe && file.toString().endsWith(".wtv")) {
             ProcessBuilder pb = new ProcessBuilder("ffprobe", file.toString());
@@ -206,12 +208,10 @@ public class FileWalker implements FileVisitor<Path> {
                 p.waitFor();
             }
             catch(InterruptedException ex) {
-                System.err.println("Interrupted while waiting for process. How could this happen?");
-                ex.printStackTrace();
+                LOG.error("Interrupted while waiting for process. How could this happen?", ex);
             }
             if(p.exitValue() != 0) {
-                System.err.println("Error calling ffprobe for file " + file);
-                System.err.println(p.exitValue());
+                LOG.error("Error calling ffprobe for file " + file);
             }
             else {
                 BufferedReader ffprobe = new BufferedReader(new InputStreamReader(p.getErrorStream()));
@@ -253,14 +253,13 @@ public class FileWalker implements FileVisitor<Path> {
 
     @Override
     public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-        System.err.println("Failed to visit " + base.relativize(file));
-        exc.printStackTrace();
+        LOG.warn("Failed to visit " + base.relativize(file), exc);
         return FileVisitResult.CONTINUE;
     }
 
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-        System.out.println("Exiting directory " + base.relativize(dir));
+        LOG.info("Exiting directory " + base.relativize(dir));
         return FileVisitResult.CONTINUE;
     }
 }
