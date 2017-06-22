@@ -14,17 +14,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package aprel.xml.tags;
+package aprel.tags.xml;
 
 /**
  *
  * @author Aprel
  */
-public enum Metadata implements XmlTag {
-    MD5, SIZE, DURATION_100NANOS, DURATION_READABLE;
-
+public enum Xml implements XmlTag {
+    ROOT("FILES"), FILE("FILE");
+    
+    private final String tag;
+    
+    private Xml(String tag) {
+        this.tag = tag;
+    }
+    
     @Override
     public String getXmlTag() {
-        return name();
+        return tag;
     }
 }

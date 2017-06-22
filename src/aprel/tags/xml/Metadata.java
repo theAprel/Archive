@@ -14,31 +14,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package aprel.xml.tags;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+package aprel.tags.xml;
 
 /**
  *
  * @author Aprel
  */
-public interface XmlTag {
-    static Set<XmlTag> fileTagSet = Collections.unmodifiableSet(Stream.concat(
-            Arrays.stream(WtvMetadata.values()), 
-            Arrays.stream(Metadata.values()))
-            .collect(Collectors.toSet()));
-    
-    public String getXmlTag();
-    
-    /**
-     * 
-     * @return The set of all possible children tags for a file element.
-     */
-    public static Set<XmlTag> getFileTagSet() {
-        return fileTagSet;
+public enum Metadata implements XmlTag {
+    MD5, SIZE, DURATION_100NANOS, DURATION_READABLE;
+
+    @Override
+    public String getXmlTag() {
+        return name();
     }
 }

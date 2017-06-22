@@ -16,10 +16,10 @@
  */
 package aprel;
 
-import aprel.xml.tags.Metadata;
-import aprel.xml.tags.WtvMetadata;
-import aprel.xml.tags.Xml;
-import aprel.xml.tags.XmlTag;
+import aprel.tags.xml.Metadata;
+import aprel.tags.xml.WtvMetadata;
+import aprel.tags.xml.Xml;
+import aprel.tags.xml.XmlTag;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
