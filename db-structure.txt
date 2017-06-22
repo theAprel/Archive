@@ -10,9 +10,9 @@ Serial ID | Dirname | dirParent
 
 Table: Metadata
 
-File serial ID | Title | Subtitle | Description | Channel (service_name) | original broadcast datetime
+File serial ID | Title | Subtitle | Description | Channel (service_name) | original broadcast datetime | original runtime | duration 100nanos | duration readable
 
 
 Table: Parts (save files in UDF for disc with partSerialId-partFilename)
 
-Serial ID | part filename | Parent file Serial ID | order | totalInSet | md5 | size | BOOL onOptical | BOOL md5verified | catalog | discNumber | localStoragePath (tmp until written to optical)
+Serial ID | part filename | Parent file Serial ID | ordinal | totalInSet | md5 | size | BOOL onOptical | BOOL md5verified | catalog | discNumber | localStoragePath (tmp until written to optical)
