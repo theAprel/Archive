@@ -16,6 +16,10 @@
  */
 package aprel;
 
+import aprel.xml.tags.Metadata;
+import aprel.xml.tags.WtvMetadata;
+import aprel.xml.tags.Xml;
+import aprel.xml.tags.XmlTag;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -132,7 +136,7 @@ public class FileWalker implements FileVisitor<Path> {
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         doc = docBuilder.newDocument();
-        rootElement = doc.createElement("FILES");
+        rootElement = doc.createElement(Xml.ROOT.getXmlTag());
         doc.appendChild(rootElement);
         
         FileWalker fw = new FileWalker(p);
@@ -165,11 +169,11 @@ public class FileWalker implements FileVisitor<Path> {
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
         final Path relative = base.relativize(file);
         LOG.info("Found file " + relative);
-        final Element fileElement = doc.createElement("FILE");
+        final Element fileElement = doc.createElement(Xml.FILE.getXmlTag());
         fileElement.setAttribute("path", relative.toString());
         rootElement.appendChild(fileElement);
         long size = Files.size(file);
-        final Element sizeElement = doc.createElement("SIZE");
+        final Element sizeElement = doc.createElement(Metadata.SIZE.getXmlTag());
         sizeElement.setTextContent(Long.toString(size));
         fileElement.appendChild(sizeElement);
         String md5String = null;
@@ -198,7 +202,7 @@ public class FileWalker implements FileVisitor<Path> {
             }
         }
         if(md5String != null) {
-            Element md5Element = doc.createElement("MD5");
+            Element md5Element = doc.createElement(Metadata.MD5.getXmlTag());
             md5Element.setTextContent(md5String);
             fileElement.appendChild(md5Element);
         }
@@ -223,23 +227,22 @@ public class FileWalker implements FileVisitor<Path> {
                 while((line = ffprobe.readLine())!=null) {
                     String[] parts = line.split(":", 2);
                     String possibleKey = parts[0].trim();
-                    WtvMetadata corresponding = WtvMetadata.getFromWtvMetadataKey(possibleKey);
+                    XmlTag corresponding = WtvMetadata.getFromWtvMetadataKey(possibleKey);
                     if(corresponding != null) {
                         String value = parts[1].trim();
-                        String append = "";
                         if(corresponding == WtvMetadata.DURATION) {
                             //ffprobe/WTV has two duration values: one as
                             //100*nanoseconds and another as hrs:mins:secs.fraction
                             String durationParts[] = value.split(",");
                             if(durationParts.length > 1) { //is hrs:mins:secs
-                                append = "_READABLE";
+                                corresponding = Metadata.DURATION_READABLE;
                                 value = durationParts[0];
                             }
                             else {
-                                append = "_100NANOS";
+                                corresponding = Metadata.DURATION_100NANOS;
                             }
                         }
-                        Element wtvData = doc.createElement(corresponding.name() + append);
+                        Element wtvData = doc.createElement(corresponding.getXmlTag());
                         wtvData.setTextContent(value);
                         fileElement.appendChild(wtvData);
                     }

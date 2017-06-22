@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package aprel;
+package aprel.xml.tags;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +23,7 @@ import java.util.Map;
  *
  * @author Aprel
  */
-public enum WtvMetadata {
+public enum WtvMetadata implements XmlTag {
     TITLE("Title"), 
     SUBTITLE("WM/SubTitle"), 
     DESCRIPTION("WM/SubTitleDescription"), 
@@ -63,5 +63,12 @@ public enum WtvMetadata {
                 map.put(w.getWtvMetadataKey(), w);
         }
         return map.get(key);
+    }
+
+    @Override
+    public String getXmlTag() {
+        if(DURATION == this)
+            throw new UnsupportedOperationException(DURATION + " has multiple XML tags");
+        return name();
     }
 }
