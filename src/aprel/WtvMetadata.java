@@ -16,6 +16,9 @@
  */
 package aprel;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  *
  * @author Aprel
@@ -31,6 +34,8 @@ public enum WtvMetadata {
     
     private final String wtvKey;
     
+    private static final Map<String,WtvMetadata> map = new HashMap<>(10);
+    
     private WtvMetadata(String wtvKey) {
         this.wtvKey = wtvKey;
     }
@@ -43,5 +48,20 @@ public enum WtvMetadata {
      */
     public String getWtvMetadataKey() {
         return wtvKey;
+    }
+    
+    /**
+     * 
+     * @param key
+     * @return The WtvMetadata associated with the key, or <code>null</code> 
+     * if there is no such association.
+     */
+    public static WtvMetadata getFromWtvMetadataKey(String key) {
+        if(map.isEmpty()) {
+            //initialize
+            for(WtvMetadata w : WtvMetadata.values())
+                map.put(w.getWtvMetadataKey(), w);
+        }
+        return map.get(key);
     }
 }

@@ -223,13 +223,7 @@ public class FileWalker implements FileVisitor<Path> {
                 while((line = ffprobe.readLine())!=null) {
                     String[] parts = line.split(":", 2);
                     String possibleKey = parts[0].trim();
-                    WtvMetadata corresponding = null;
-                    for(WtvMetadata wtvMeta : WtvMetadata.values()) {
-                        if(possibleKey.equals(wtvMeta.getWtvMetadataKey())) {
-                            corresponding = wtvMeta;
-                            break;
-                        }
-                    }
+                    WtvMetadata corresponding = WtvMetadata.getFromWtvMetadataKey(possibleKey);
                     if(corresponding != null) {
                         String value = parts[1].trim();
                         String append = "";
