@@ -168,6 +168,10 @@ public class FileWalker implements FileVisitor<Path> {
         final Element fileElement = doc.createElement("FILE");
         fileElement.setAttribute("path", relative.toString());
         rootElement.appendChild(fileElement);
+        long size = Files.size(file);
+        final Element sizeElement = doc.createElement("SIZE");
+        sizeElement.setTextContent(Long.toString(size));
+        fileElement.appendChild(sizeElement);
         String md5String = null;
         if(md5Map != null) {
             md5String = md5Map.get(relative.toString());
