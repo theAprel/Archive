@@ -1,18 +1,18 @@
-Table: Files
+Table: files
 
-Serial ID | Filename | dirParent | md5 | size | catalog (i.e. optical-media set, for numbering, e.g. main, videos, anime, etc.) | BOOL onOptical | BOOL onLocalDisc | localStoragePath (tmp until written to optical, or has been retrieved)
-
-
-Table: Directories
-
-Serial ID | Dirname | dirParent
+(Serial) id | filename | dirParentId | md5 | size | catalog (i.e. optical-media set, for numbering, e.g. main, videos, anime, etc.) | BOOL onOptical | BOOL onLocalDisc | localStoragePath (tmp until written to optical, or has been retrieved)
 
 
-Table: Metadata
+Table: directories
 
-File serial ID | Title | Subtitle | Description | Channel (service_name) | original broadcast datetime | original runtime | duration 100nanos | duration readable
+(Serial) id | dirName | dirParentId
 
 
-Table: Parts (save files in UDF for disc with partSerialId-partFilename)
+Table: metadata
 
-Serial ID | part filename | Parent file Serial ID | ordinal | totalInSet | md5 | size | BOOL onOptical | BOOL md5verified | catalog | discNumber | localStoragePath (tmp until written to optical)
+fileId (File serial ID) | title | subtitle | description | channel (service_name) | originalBroadcast (datetime) | originalRuntime | duration100Nanos | duration (readable)
+
+
+Table: parts (save files in UDF for disc with partSerialId-partFilename)
+
+(Serial) id | partFilename | parentFileId (serial) | ordinal | totalInSet | md5 | size | BOOL onOptical | BOOL md5Verified | catalog | discNumber | localStoragePath (tmp until written to optical)
