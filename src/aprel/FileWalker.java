@@ -170,8 +170,10 @@ public class FileWalker implements FileVisitor<Path> {
         final Path relative = base.relativize(file);
         LOG.info("Found file " + relative);
         final Element fileElement = doc.createElement(Xml.FILE.getXmlTag());
-        fileElement.setAttribute("path", relative.toString());
         rootElement.appendChild(fileElement);
+        final Element pathElement = doc.createElement(Metadata.PATH.getXmlTag());
+        pathElement.setTextContent(relative.toString());
+        fileElement.appendChild(pathElement);
         long size = Files.size(file);
         final Element sizeElement = doc.createElement(Metadata.SIZE.getXmlTag());
         sizeElement.setTextContent(Long.toString(size));

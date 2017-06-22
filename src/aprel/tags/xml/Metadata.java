@@ -21,7 +21,7 @@ package aprel.tags.xml;
  * @author Aprel
  */
 public enum Metadata implements XmlTag {
-    MD5, SIZE, DURATION_100NANOS, DURATION_READABLE;
+    PATH, MD5, SIZE, DURATION_100NANOS, DURATION_READABLE;
 
     @Override
     public String getXmlTag() {
