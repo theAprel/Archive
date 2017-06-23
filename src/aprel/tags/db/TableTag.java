@@ -20,6 +20,8 @@ import aprel.tags.xml.Xml;
 import aprel.tags.xml.XmlTag;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,6 +37,8 @@ public interface TableTag {
             Arrays.stream(Metadata.values()))
             .filter(e -> e.getCorrespondingXmlTag() != Xml.NO_XML)
             .collect(Collectors.toSet()));
+    
+    static Map<String,TableTag> tagMap = new HashMap<>();
     
     public String getTableName();
     public String getColumnHeader();
@@ -53,5 +57,15 @@ public interface TableTag {
      */
     public static Set<TableTag> getSetWithXmlCorrespondence() {
         return xmlSet;
+    }
+    
+    public static TableTag getFromXml(String xmlTag) {
+        if(tagMap.isEmpty()) {
+            //initialize
+            xmlSet.forEach((tt) -> {
+                tagMap.put(tt.getCorrespondingXmlTag().getXmlTag(), tt);
+            });
+        }
+        return tagMap.get(xmlTag);
     }
 }
