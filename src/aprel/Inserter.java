@@ -17,7 +17,7 @@
 package aprel;
 
 import aprel.db.beans.FileBean;
-import java.util.Arrays;
+import aprel.jdbi.Insert;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -39,6 +39,16 @@ public class Inserter {
 	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
         Document doc = dBuilder.parse(root + (root.endsWith("/") ? "" : "/") + "METADATA.xml");
         List<FileBean> l = FileBean.fromXml(doc);
-        System.out.println(l);
+        //files are not on optical; they are on local storage
+        l.stream().forEach(bean ->  {
+            bean.setOnOptical(false);
+            bean.setOnLocalDisc(true);
+                });
+        
+        ArchiveDatabase db = ArchiveDatabase.createDefaultDatabase();
+        Insert ins = db.getHandle().attach(Insert.class);
+        ins.insertAllNoMetadata(l.iterator());
+        
+        db.close();
     }
 }
