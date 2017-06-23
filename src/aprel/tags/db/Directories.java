@@ -14,17 +14,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package aprel.tags.xml;
+package aprel.tags.db;
+
+import aprel.tags.xml.Xml;
+import aprel.tags.xml.XmlTag;
 
 /**
  *
  * @author Aprel
  */
-public enum Metadata implements XmlTag {
-    PATH, MD5, SIZE, DURATION_100NANOS, DURATION_READABLE;
+public enum Directories implements TableTag {
+    /*
+    (Serial) id | dirName | dirParentId
+    */
+    
+    ID("id"),
+    DIR_NAME("dirName"),
+    DIR_PARENT_ID("dirParentId");
+    
+    private final String tableHeader;
+    public static final String TABLE_NAME = "directories";
+    
+    private Directories(String tableHeader) {
+        this.tableHeader = tableHeader;
+    }
 
     @Override
-    public String getXmlTag() {
-        return name();
+    public String getTableName() {
+        return TABLE_NAME;
+    }
+
+    @Override
+    public String getColumnHeader() {
+        return tableHeader;
+    }
+
+    @Override
+    public XmlTag getCorrespondingXmlTag() {
+        return Xml.NO_XML;
     }
 }

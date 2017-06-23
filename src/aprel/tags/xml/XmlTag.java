@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 public interface XmlTag {
     static Set<XmlTag> fileTagSet = Collections.unmodifiableSet(Stream.concat(
             Arrays.stream(WtvMetadata.values()), 
-            Arrays.stream(Metadata.values()))
+            Arrays.stream(FileMetadata.values()))
             .collect(Collectors.toSet()));
     
     public String getXmlTag();

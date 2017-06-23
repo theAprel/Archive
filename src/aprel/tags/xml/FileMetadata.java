@@ -20,19 +20,11 @@ package aprel.tags.xml;
  *
  * @author Aprel
  */
-public enum Xml implements XmlTag {
-    ROOT("FILES"), FILE("FILE"), NO_XML("");
-    
-    private final String tag;
-    
-    private Xml(String tag) {
-        this.tag = tag;
-    }
-    
+public enum FileMetadata implements XmlTag {
+    PATH, MD5, SIZE, DURATION_100NANOS, DURATION_READABLE;
+
     @Override
     public String getXmlTag() {
-        if(this == NO_XML)
-            throw new UnsupportedOperationException("This tag has no representation in XML");
-        return tag;
+        return name();
     }
 }

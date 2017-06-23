@@ -16,7 +16,7 @@
  */
 package aprel;
 
-import aprel.tags.xml.Metadata;
+import aprel.tags.xml.FileMetadata;
 import aprel.tags.xml.WtvMetadata;
 import aprel.tags.xml.Xml;
 import aprel.tags.xml.XmlTag;
@@ -171,11 +171,11 @@ public class FileWalker implements FileVisitor<Path> {
         LOG.info("Found file " + relative);
         final Element fileElement = doc.createElement(Xml.FILE.getXmlTag());
         rootElement.appendChild(fileElement);
-        final Element pathElement = doc.createElement(Metadata.PATH.getXmlTag());
+        final Element pathElement = doc.createElement(FileMetadata.PATH.getXmlTag());
         pathElement.setTextContent(relative.toString());
         fileElement.appendChild(pathElement);
         long size = Files.size(file);
-        final Element sizeElement = doc.createElement(Metadata.SIZE.getXmlTag());
+        final Element sizeElement = doc.createElement(FileMetadata.SIZE.getXmlTag());
         sizeElement.setTextContent(Long.toString(size));
         fileElement.appendChild(sizeElement);
         String md5String = null;
@@ -204,7 +204,7 @@ public class FileWalker implements FileVisitor<Path> {
             }
         }
         if(md5String != null) {
-            Element md5Element = doc.createElement(Metadata.MD5.getXmlTag());
+            Element md5Element = doc.createElement(FileMetadata.MD5.getXmlTag());
             md5Element.setTextContent(md5String);
             fileElement.appendChild(md5Element);
         }
@@ -237,11 +237,11 @@ public class FileWalker implements FileVisitor<Path> {
                             //100*nanoseconds and another as hrs:mins:secs.fraction
                             String durationParts[] = value.split(",");
                             if(durationParts.length > 1) { //is hrs:mins:secs
-                                corresponding = Metadata.DURATION_READABLE;
+                                corresponding = FileMetadata.DURATION_READABLE;
                                 value = durationParts[0];
                             }
                             else {
-                                corresponding = Metadata.DURATION_100NANOS;
+                                corresponding = FileMetadata.DURATION_100NANOS;
                             }
                         }
                         Element wtvData = doc.createElement(corresponding.getXmlTag());
