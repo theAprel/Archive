@@ -20,11 +20,16 @@ package aprel.tags.xml;
  *
  * @author Aprel
  */
-public enum FileMetadata implements XmlTag {
-    MD5, SIZE, DURATION_100NANOS, DURATION_READABLE;
-
-    @Override
-    public String getXmlTag() {
-        return name();
+public enum Attribute {
+    PATH("path");
+    
+    String attr;
+    
+    private Attribute(String attr) {
+        this.attr = attr;
+    }
+    
+    public String getXmlAttribute() {
+        return attr;
     }
 }

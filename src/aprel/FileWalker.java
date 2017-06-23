@@ -16,6 +16,7 @@
  */
 package aprel;
 
+import aprel.tags.xml.Attribute;
 import aprel.tags.xml.FileMetadata;
 import aprel.tags.xml.WtvMetadata;
 import aprel.tags.xml.Xml;
@@ -170,10 +171,8 @@ public class FileWalker implements FileVisitor<Path> {
         final Path relative = base.relativize(file);
         LOG.info("Found file " + relative);
         final Element fileElement = doc.createElement(Xml.FILE.getXmlTag());
+        fileElement.setAttribute(Attribute.PATH.getXmlAttribute(), relative.toString());
         rootElement.appendChild(fileElement);
-        final Element pathElement = doc.createElement(FileMetadata.PATH.getXmlTag());
-        pathElement.setTextContent(relative.toString());
-        fileElement.appendChild(pathElement);
         long size = Files.size(file);
         final Element sizeElement = doc.createElement(FileMetadata.SIZE.getXmlTag());
         sizeElement.setTextContent(Long.toString(size));
