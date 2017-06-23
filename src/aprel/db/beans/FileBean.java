@@ -16,24 +16,26 @@
  */
 package aprel.db.beans;
 
-import aprel.tags.db.TableTag;
-import aprel.tags.xml.Attribute;
-import aprel.tags.xml.FileMetadata;
 import aprel.tags.xml.Xml;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
  *
  * @author Aprel
  */
+@XmlRootElement( name = "FILE" )
 public class FileBean {
     /*
     (Serial) id | filename | dirParentId | md5 | size | catalog
@@ -57,6 +59,7 @@ public class FileBean {
         return filename;
     }
 
+    @XmlAttribute( name = "path", required = true )
     public void setFilename(String filename) {
         this.filename = filename;
     }
@@ -73,6 +76,7 @@ public class FileBean {
         return md5;
     }
 
+    @XmlElement( name = "MD5" )
     public void setMd5(String md5) {
         this.md5 = md5;
     }
@@ -97,6 +101,7 @@ public class FileBean {
         return size;
     }
 
+    @XmlElement( name = "SIZE" )
     public void setSize(long size) {
         this.size = size;
     }
@@ -116,54 +121,30 @@ public class FileBean {
     public void setOnLocalDisc(boolean onLocalDisc) {
         this.onLocalDisc = onLocalDisc;
     }
-    
-    public static FileBean fromXmlElement(Element fileElement) {
-        FileBean bean = new FileBean();
-        String path = fileElement.getAttribute(Attribute.PATH.getXmlAttribute());
-        String[] parts = path.split("/");
-        String filename = parts[parts.length-1];
-        bean.filename = filename;
-        
-        NodeList children = fileElement.getChildNodes();
-        for(int i = 0; i < children.getLength(); i++) {
-            Node n = children.item(i);
-            if(n.getNodeType() != Node.ELEMENT_NODE)
-                continue;
-            Element e = (Element) n;
-            String tag = e.getTagName();
-            String inner = e.getTextContent();
-            TableTag tableTag = TableTag.getFromXml(tag);
-            if(tableTag == null)
-                throw new IllegalArgumentException("XML contains an unrecognized tag: " + tag);
-            try {
-                Field field = bean.getClass().getDeclaredField(tableTag.getColumnHeader());
-                if(tag.equals(FileMetadata.SIZE.getXmlTag())) {
-                    field.setLong(bean, Long.parseLong(inner));
-                }
-                else {
-                    field.set(bean, inner);
-                }
-            } catch (NoSuchFieldException ex) {
-                LOG.error("No such field", ex);
-                return null;
-            } catch (SecurityException ex) {
-                LOG.error("Security settings prevent reflection", ex);
-                return null;
-            } catch (IllegalArgumentException | IllegalAccessException ex) {
-                LOG.error("Error changing field value", ex);
-                return null;
-            }
-        }
-        return bean;
+
+    @Override
+    public String toString() {
+        return "FileBean{" + "id=" + id + ", filename=" + filename + 
+                ", dirParentId=" + dirParentId + ", md5=" + md5 + ", catalog=" +
+                catalog + ", localStoragePath=" + localStoragePath + ", size=" +
+                size + ", onOptical=" + onOptical + ", onLocalDisc=" + onLocalDisc + '}';
     }
     
-    public static List<FileBean> fromXml(Document doc) {
+    public static List<FileBean> fromXml(Document doc) throws JAXBException {
+        JAXBContext jaxbContext = JAXBContext.newInstance(FileBean.class);
+        Unmarshaller unmarsh = jaxbContext.createUnmarshaller();
+        
         Element filesElement = doc.getDocumentElement();
         List<FileBean> beans = new ArrayList<>();
         NodeList children = filesElement.getElementsByTagName(Xml.FILE.getXmlTag());
         for(int i = 0; i < children.getLength(); i++) {
-            Element e = (Element) children.item(i);
-            beans.add(fromXmlElement(e));
+            FileBean b = (FileBean) unmarsh.unmarshal(children.item(i));
+            //strip filename off from path
+            String path = b.filename;
+            String[] parts = path.split("/");
+            String filename = parts[parts.length - 1];
+            b.filename = filename;
+            beans.add(b);
         }
         return beans;
     }

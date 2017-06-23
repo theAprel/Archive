@@ -17,6 +17,8 @@
 package aprel;
 
 import aprel.db.beans.FileBean;
+import java.util.Arrays;
+import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
@@ -36,6 +38,7 @@ public class Inserter {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
         Document doc = dBuilder.parse(root + (root.endsWith("/") ? "" : "/") + "METADATA.xml");
-        FileBean.fromXml(doc);
+        List<FileBean> l = FileBean.fromXml(doc);
+        System.out.println(l);
     }
 }
