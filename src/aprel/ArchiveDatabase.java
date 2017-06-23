@@ -16,18 +16,20 @@
  */
 package aprel;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.handlers.ArrayHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 /**
  *
@@ -36,7 +38,7 @@ import org.w3c.dom.Document;
 public class ArchiveDatabase {
     private final String user, pass, sqlServer, dbName;
     private final QueryRunner run = new QueryRunner();
-    private Connection con;
+    private final Connection con;
     
     private static final Logger LOG = LoggerFactory.getLogger(ArchiveDatabase.class);
     
@@ -62,20 +64,14 @@ public class ArchiveDatabase {
         con = DriverManager.getConnection(SQL_SERVER_URL_PREFIX + sqlServer +
                 (sqlServer.endsWith("/") ? "" : "/") + this.dbName,
                 this.user, this.pass);
-        
-        ArrayHandler h = new ArrayHandler();
-        Object[] res = run.query(con, "DESCRIBE files", h);
-        for(Object o : res)
-            System.out.println(o);
-        
-        close();
     }
     
     public void close() throws SQLException {
         DbUtils.close(con);
     }
     
-    public static void main(String[] args) throws Exception {
+    public static ArchiveDatabase createDefaultDatabase() throws 
+            ParserConfigurationException, SAXException, IOException, SQLException {
         InputStream credStream = ArchiveDatabase.class.getResourceAsStream(
                 "/aprel/db-credentials.xml");
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -85,6 +81,6 @@ public class ArchiveDatabase {
         String pass = doc.getElementsByTagName("password").item(0).getTextContent();
         String server = doc.getElementsByTagName("server").item(0).getTextContent();
         String db = doc.getElementsByTagName("database").item(0).getTextContent();
-        new ArchiveDatabase(user, pass, server, db);
+        return new ArchiveDatabase(user, pass, server, db);
     }
 }
