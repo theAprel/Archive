@@ -23,6 +23,13 @@ import java.io.File;
 import java.util.List;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
 /**
  *
@@ -30,9 +37,45 @@ import javax.xml.bind.Unmarshaller;
  */
 public class Inserter {
     
+    /**
+     * The local path to the directory of files to be archived.
+     */
+    private static final String OPTION_INPUT_PATH = "i";
+    /**
+     * The destination path in the catalog.
+     */
+    private static final String OPTION_OUTPUT_PATH = "o";
+    /**
+     * The catalog in the archive to receive the files.
+     */
+    private static final String OPTION_CATALOG = "c";
+    
+    private static String archivePath, localPath, catalog;
+    
     public static void main(String[] args) throws Exception {
-        String root = args[0];
-        String metadataFileLoc = root + (root.endsWith("/") ? "" : "/") + "METADATA.xml";
+        Options options = new Options();
+        options.addOption(Option.builder(OPTION_INPUT_PATH).required()
+                .desc("the local path to the directory of files to be archived").numberOfArgs(1).build());
+        options.addOption(Option.builder(OPTION_OUTPUT_PATH).required()
+                .desc("the destination path in the catalog").numberOfArgs(1).build());
+        options.addOption(Option.builder(OPTION_CATALOG).required().longOpt("catalog")
+                .desc("the catalog in the archive to receive the files").numberOfArgs(1).build());
+        CommandLineParser parser = new DefaultParser();
+        HelpFormatter formatter = new HelpFormatter();
+        CommandLine cmd;
+        try {
+            cmd = parser.parse(options, args);
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            formatter.printHelp(Inserter.class.getSimpleName(), options);
+
+            System.exit(1);
+            return;
+        }
+        archivePath = cmd.getOptionValue(OPTION_OUTPUT_PATH);
+        localPath = cmd.getOptionValue(OPTION_INPUT_PATH);
+        catalog = cmd.getOptionValue(OPTION_CATALOG);
+        String metadataFileLoc = localPath + (localPath.endsWith("/") ? "" : "/") + "METADATA.xml";
         JAXBContext jaxbContext = JAXBContext.newInstance(FilesRootContainer.class);
         Unmarshaller unmarsh = jaxbContext.createUnmarshaller();
         FilesRootContainer files = (FilesRootContainer) unmarsh.unmarshal(new File(metadataFileLoc));
