@@ -103,7 +103,10 @@ public class DefaultParser implements CommandLineParser
         this.stopAtNonOption = stopAtNonOption;
         skipParsing = false;
         currentOption = null;
-        expectedOpts = new ArrayList(options.getRequiredOptions());
+        // Aprel: added annotations
+        @SuppressWarnings("unchecked")
+        ArrayList l = new ArrayList(options.getRequiredOptions());
+        expectedOpts = l;
 
         // clear the data from the groups
         for (OptionGroup group : options.getOptionGroups())
