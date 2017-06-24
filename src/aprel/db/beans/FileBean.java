@@ -16,34 +16,29 @@
  */
 package aprel.db.beans;
 
-import aprel.tags.xml.Xml;
-import java.util.ArrayList;
-import java.util.List;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
+import javax.xml.bind.annotation.XmlType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 /**
  *
  * @author Aprel
  */
 @XmlRootElement( name = "FILE" )
+@XmlType(propOrder = {"size", "md5", "media"} )
 public class FileBean {
     /*
     (Serial) id | filename | dirParentId | md5 | size | catalog
     | BOOL onOptical | BOOL onLocalDisc | localStoragePath
     */
-    private String id, filename, dirParentId, md5, catalog, localStoragePath;
+    private String id, path, filename, dirParentId, md5, catalog, localStoragePath;
     private long size;
     private boolean onOptical, onLocalDisc;
+    private MediaMetadata media;
     
     private static final Logger LOG = LoggerFactory.getLogger(FileBean.class);
 
@@ -51,23 +46,39 @@ public class FileBean {
         return id;
     }
 
+    @XmlTransient
     public void setId(String id) {
         this.id = id;
     }
 
     public String getFilename() {
+        if(filename == null) {
+            String[] parts = path.split("/");
+            String name = parts[parts.length - 1];
+            filename = name;
+        }
         return filename;
     }
-
-    @XmlAttribute( name = "path", required = true )
+    
+    @XmlTransient
     public void setFilename(String filename) {
         this.filename = filename;
     }
 
+    public String getPath() {
+        return path;
+    }
+    
+    @XmlAttribute( name = "path", required = true )
+    public void setPath(String path) {
+        this.path = path;
+    }
+    
     public String getDirParentId() {
         return dirParentId;
     }
 
+    @XmlTransient
     public void setDirParentId(String dirParentId) {
         this.dirParentId = dirParentId;
     }
@@ -76,7 +87,7 @@ public class FileBean {
         return md5;
     }
 
-    @XmlElement( name = "MD5" )
+    @XmlElement( name = "MD5", required = true )
     public void setMd5(String md5) {
         this.md5 = md5;
     }
@@ -85,6 +96,7 @@ public class FileBean {
         return catalog;
     }
 
+    @XmlTransient
     public void setCatalog(String catalog) {
         this.catalog = catalog;
     }
@@ -93,6 +105,7 @@ public class FileBean {
         return localStoragePath;
     }
 
+    @XmlTransient
     public void setLocalStoragePath(String localStoragePath) {
         this.localStoragePath = localStoragePath;
     }
@@ -101,7 +114,7 @@ public class FileBean {
         return size;
     }
 
-    @XmlElement( name = "SIZE" )
+    @XmlElement( name = "SIZE", required = true )
     public void setSize(long size) {
         this.size = size;
     }
@@ -110,6 +123,7 @@ public class FileBean {
         return onOptical;
     }
 
+    @XmlTransient
     public void setOnOptical(boolean onOptical) {
         this.onOptical = onOptical;
     }
@@ -118,34 +132,119 @@ public class FileBean {
         return onLocalDisc;
     }
 
+    @XmlTransient
     public void setOnLocalDisc(boolean onLocalDisc) {
         this.onLocalDisc = onLocalDisc;
     }
 
-    @Override
-    public String toString() {
-        return "FileBean{" + "id=" + id + ", filename=" + filename + 
-                ", dirParentId=" + dirParentId + ", md5=" + md5 + ", catalog=" +
-                catalog + ", localStoragePath=" + localStoragePath + ", size=" +
-                size + ", onOptical=" + onOptical + ", onLocalDisc=" + onLocalDisc + '}';
+    public MediaMetadata getMedia() {
+        return media;
+    }
+
+    @XmlElement( name = "MEDIA" )
+    public void setMedia(MediaMetadata media) {
+        this.media = media;
     }
     
-    public static List<FileBean> fromXml(Document doc) throws JAXBException {
-        JAXBContext jaxbContext = JAXBContext.newInstance(FileBean.class);
-        Unmarshaller unmarsh = jaxbContext.createUnmarshaller();
-        
-        Element filesElement = doc.getDocumentElement();
-        List<FileBean> beans = new ArrayList<>();
-        NodeList children = filesElement.getElementsByTagName(Xml.FILE.getXmlTag());
-        for(int i = 0; i < children.getLength(); i++) {
-            FileBean b = (FileBean) unmarsh.unmarshal(children.item(i));
-            //strip filename off from path
-            String path = b.filename;
-            String[] parts = path.split("/");
-            String filename = parts[parts.length - 1];
-            b.filename = filename;
-            beans.add(b);
+    public boolean hasMediaData() {
+        return media != null;
+    }
+
+    @Override
+    public String toString() {
+        return "FileBean{" + "id=" + id + ", path=" + path + ", filename=" + 
+                filename + ", dirParentId=" + dirParentId + ", md5=" + md5 + 
+                ", catalog=" + catalog + ", localStoragePath=" + localStoragePath + 
+                ", size=" + size + ", onOptical=" + onOptical + ", onLocalDisc=" + 
+                onLocalDisc + ", media=" + media + '}';
+    }
+    
+    @XmlType(propOrder = {"title", "subtitle", "description", "channel",
+    "originalBroadcast", "originalRuntime", "duration100Nanos", "duration"} )
+    public static class MediaMetadata {
+        private String title, subtitle, description, channel, originalRuntime,
+                duration100Nanos, duration, originalBroadcast;
+        //private Instant originalBroadcast;
+
+        public String getTitle() {
+            return title;
         }
-        return beans;
+
+        @XmlElement( name = "TITLE" )
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public String getSubtitle() {
+            return subtitle;
+        }
+
+        @XmlElement( name = "SUBTITLE" )
+        public void setSubtitle(String subtitle) {
+            this.subtitle = subtitle;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        @XmlElement( name = "DESCRIPTION" )
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public String getChannel() {
+            return channel;
+        }
+
+        @XmlElement( name = "CHANNEL" )
+        public void setChannel(String channel) {
+            this.channel = channel;
+        }
+
+        public String getOriginalRuntime() {
+            return originalRuntime;
+        }
+
+        @XmlElement( name = "ORIGINAL_RUNTIME" )
+        public void setOriginalRuntime(String originalRuntime) {
+            this.originalRuntime = originalRuntime;
+        }
+
+        public String getDuration100Nanos() {
+            return duration100Nanos;
+        }
+
+        @XmlElement( name = "DURATION_100NANOS" )
+        public void setDuration100Nanos(String duration100Nanos) {
+            this.duration100Nanos = duration100Nanos;
+        }
+
+        public String getDuration() {
+            return duration;
+        }
+
+        @XmlElement( name = "DURATION_READABLE" )
+        public void setDuration(String duration) {
+            this.duration = duration;
+        }
+
+        public String getOriginalBroadcast() {
+            return originalBroadcast;
+        }
+
+        @XmlElement( name = "ORIGINAL_BROADCAST_DATETIME" )
+        public void setOriginalBroadcast(String originalBroadcast) {
+            this.originalBroadcast = originalBroadcast;
+        }
+
+        @Override
+        public String toString() {
+            return "MediaMetadata{" + "title=" + title + ", subtitle=" + subtitle + 
+                    ", description=" + description + ", channel=" + channel + 
+                    ", originalRuntime=" + originalRuntime + ", duration100Nanos=" + 
+                    duration100Nanos + ", duration=" + duration + 
+                    ", originalBroadcast=" + originalBroadcast + '}';
+        }
     }
 }

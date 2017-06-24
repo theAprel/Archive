@@ -16,11 +16,9 @@
  */
 package aprel;
 
-import aprel.tags.xml.Attribute;
-import aprel.tags.xml.FileMetadata;
+import aprel.db.beans.FileBean;
+import aprel.db.beans.FilesRootContainer;
 import aprel.tags.xml.WtvMetadata;
-import aprel.tags.xml.Xml;
-import aprel.tags.xml.XmlTag;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -36,14 +34,16 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.util.JAXBSource;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -54,8 +54,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
 /**
  *
@@ -67,9 +65,8 @@ public class FileWalker implements FileVisitor<Path> {
     private static boolean useFFprobe;
     private static boolean noRecursion;
     private static boolean doMd5;
-    private static Document doc;
-    private static Element rootElement;
     private static Map<String, String> md5Map = null;
+    private static final List<FileBean> fileBeans = new ArrayList<>();
     private static final Logger LOG = LoggerFactory.getLogger(FileWalker.class);
     
     private static final String OPTION_PATH = "p";
@@ -134,23 +131,19 @@ public class FileWalker implements FileVisitor<Path> {
             System.exit(-1);
         }
         
-        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-        doc = docBuilder.newDocument();
-        rootElement = doc.createElement(Xml.ROOT.getXmlTag());
-        doc.appendChild(rootElement);
-        
         FileWalker fw = new FileWalker(p);
         Files.walkFileTree(p, fw);
         
+        JAXBContext jaxbContext = JAXBContext.newInstance(FilesRootContainer.class);
+        Marshaller marsh = jaxbContext.createMarshaller();
+        JAXBSource jsource = new JAXBSource(marsh, new FilesRootContainer(fileBeans));
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         Transformer transformer = transformerFactory.newTransformer();
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
         transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-        DOMSource source = new DOMSource(doc);
         StreamResult result = new StreamResult(outFile);
-        transformer.transform(source, result);
+        transformer.transform(jsource, result);
     }
     
     public FileWalker(Path base) {
@@ -170,13 +163,11 @@ public class FileWalker implements FileVisitor<Path> {
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
         final Path relative = base.relativize(file);
         LOG.info("Found file " + relative);
-        final Element fileElement = doc.createElement(Xml.FILE.getXmlTag());
-        fileElement.setAttribute(Attribute.PATH.getXmlAttribute(), relative.toString());
-        rootElement.appendChild(fileElement);
+        FileBean bean = new FileBean();
+        bean.setPath(relative.toString());
+        fileBeans.add(bean);
         long size = Files.size(file);
-        final Element sizeElement = doc.createElement(FileMetadata.SIZE.getXmlTag());
-        sizeElement.setTextContent(Long.toString(size));
-        fileElement.appendChild(sizeElement);
+        bean.setSize(size);
         String md5String = null;
         if(md5Map != null) {
             md5String = md5Map.get(relative.toString());
@@ -202,12 +193,8 @@ public class FileWalker implements FileVisitor<Path> {
                 md5String = javax.xml.bind.DatatypeConverter.printHexBinary(md5Bytes);
             }
         }
-        if(md5String != null) {
-            Element md5Element = doc.createElement(FileMetadata.MD5.getXmlTag());
-            md5Element.setTextContent(md5String);
-            fileElement.appendChild(md5Element);
-        }
-        else {
+        bean.setMd5(md5String);
+        if(md5String == null) {
             LOG.warn(relative + " has not been assigned a checksum.");
         }
         if(useFFprobe && file.toString().endsWith(".wtv")) {
@@ -228,24 +215,34 @@ public class FileWalker implements FileVisitor<Path> {
                 while((line = ffprobe.readLine())!=null) {
                     String[] parts = line.split(":", 2);
                     String possibleKey = parts[0].trim();
-                    XmlTag corresponding = WtvMetadata.getFromWtvMetadataKey(possibleKey);
+                    WtvMetadata corresponding = WtvMetadata.getFromWtvMetadataKey(possibleKey);
                     if(corresponding != null) {
                         String value = parts[1].trim();
+                        if(!bean.hasMediaData()) {
+                            bean.setMedia(new FileBean.MediaMetadata());
+                        }
+                        FileBean.MediaMetadata media = bean.getMedia();
                         if(corresponding == WtvMetadata.DURATION) {
                             //ffprobe/WTV has two duration values: one as
                             //100*nanoseconds and another as hrs:mins:secs.fraction
                             String durationParts[] = value.split(",");
                             if(durationParts.length > 1) { //is hrs:mins:secs
-                                corresponding = FileMetadata.DURATION_READABLE;
-                                value = durationParts[0];
+                                media.setDuration(durationParts[0]);
                             }
                             else {
-                                corresponding = FileMetadata.DURATION_100NANOS;
+                                media.setDuration100Nanos(value);
                             }
+                            continue;
                         }
-                        Element wtvData = doc.createElement(corresponding.getXmlTag());
-                        wtvData.setTextContent(value);
-                        fileElement.appendChild(wtvData);
+                        switch(corresponding) {
+                            case TITLE: media.setTitle(value); break;
+                            case SUBTITLE: media.setSubtitle(value); break;
+                            case DESCRIPTION: media.setDescription(value); break;
+                            case CHANNEL: media.setChannel(value); break;
+                            case ORIGINAL_BROADCAST_DATETIME: media.setOriginalBroadcast(value); break;
+                            case ORIGINAL_RUNTIME: media.setOriginalRuntime(value); break;
+                            default: LOG.error("Misprocessed a WtvMetadata enum: " + corresponding); break;
+                        }
                     }
                 }
             }

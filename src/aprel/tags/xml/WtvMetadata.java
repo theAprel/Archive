@@ -23,7 +23,7 @@ import java.util.Map;
  *
  * @author Aprel
  */
-public enum WtvMetadata implements XmlTag {
+public enum WtvMetadata {
     TITLE("Title"), 
     SUBTITLE("WM/SubTitle"), 
     DESCRIPTION("WM/SubTitleDescription"), 
@@ -63,12 +63,5 @@ public enum WtvMetadata implements XmlTag {
                 map.put(w.getWtvMetadataKey(), w);
         }
         return map.get(key);
-    }
-
-    @Override
-    public String getXmlTag() {
-        if(DURATION == this)
-            throw new UnsupportedOperationException(DURATION + " has multiple XML tags");
-        return name();
     }
 }

@@ -17,11 +17,12 @@
 package aprel;
 
 import aprel.db.beans.FileBean;
+import aprel.db.beans.FilesRootContainer;
 import aprel.jdbi.Insert;
+import java.io.File;
 import java.util.List;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Document;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Unmarshaller;
 
 /**
  *
@@ -29,16 +30,13 @@ import org.w3c.dom.Document;
  */
 public class Inserter {
     
-    public Inserter(Document doc) {
-        
-    }
-    
     public static void main(String[] args) throws Exception {
         String root = args[0];
-        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-        Document doc = dBuilder.parse(root + (root.endsWith("/") ? "" : "/") + "METADATA.xml");
-        List<FileBean> l = FileBean.fromXml(doc);
+        String metadataFileLoc = root + (root.endsWith("/") ? "" : "/") + "METADATA.xml";
+        JAXBContext jaxbContext = JAXBContext.newInstance(FilesRootContainer.class);
+        Unmarshaller unmarsh = jaxbContext.createUnmarshaller();
+        FilesRootContainer files = (FilesRootContainer) unmarsh.unmarshal(new File(metadataFileLoc));
+        List<FileBean> l = files.getFiles();
         //files are not on optical; they are on local storage
         l.stream().forEach(bean ->  {
             bean.setOnOptical(false);
