@@ -20,6 +20,7 @@ import aprel.db.beans.FileBean;
 import aprel.db.beans.FilesRootContainer;
 import aprel.jdbi.Insert;
 import java.io.File;
+import java.nio.file.Files;
 import java.util.List;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
@@ -30,6 +31,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -49,6 +52,7 @@ public class Inserter {
      * The catalog in the archive to receive the files.
      */
     private static final String OPTION_CATALOG = "c";
+    private static final Logger LOG = LoggerFactory.getLogger(Inserter.class);
     
     private static String archivePath, localPath, catalog;
     
@@ -76,9 +80,14 @@ public class Inserter {
         localPath = cmd.getOptionValue(OPTION_INPUT_PATH);
         catalog = cmd.getOptionValue(OPTION_CATALOG);
         String metadataFileLoc = localPath + (localPath.endsWith("/") ? "" : "/") + "METADATA.xml";
+        File metadataFile = new File(metadataFileLoc);
+        if(!metadataFile.exists()) {
+            LOG.error("No METADATA.xml at " + metadataFile.getAbsolutePath());
+            return;
+        }
         JAXBContext jaxbContext = JAXBContext.newInstance(FilesRootContainer.class);
         Unmarshaller unmarsh = jaxbContext.createUnmarshaller();
-        FilesRootContainer files = (FilesRootContainer) unmarsh.unmarshal(new File(metadataFileLoc));
+        FilesRootContainer files = (FilesRootContainer) unmarsh.unmarshal(metadataFile);
         List<FileBean> l = files.getFiles();
         //files are not on optical; they are on local storage
         l.stream().forEach(bean ->  {
