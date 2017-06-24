@@ -18,7 +18,6 @@ package aprel;
 
 import aprel.db.beans.FileBean;
 import aprel.db.beans.FilesRootContainer;
-import aprel.tags.xml.WtvMetadata;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
