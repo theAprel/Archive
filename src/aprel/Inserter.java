@@ -16,6 +16,8 @@
  */
 package aprel;
 
+import aprel.db.beans.CatalogDoesNotExistException;
+import aprel.db.beans.DirectoryStructure;
 import aprel.db.beans.FileBean;
 import aprel.db.beans.FilesRootContainer;
 import aprel.jdbi.Insert;
@@ -52,9 +54,20 @@ public class Inserter {
      * The catalog in the archive to receive the files.
      */
     private static final String OPTION_CATALOG = "c";
+    private static final String OPTION_FORCE_CREATE_CATALOG = "force-create-catalog";
     private static final Logger LOG = LoggerFactory.getLogger(Inserter.class);
     
     private static String archivePath, localPath, catalog;
+    
+    /*
+    Things that must be checked prior to insertion into database:
+    -that no file to be inserted has the same md5 as another or a file in the db
+    -that no file has the same name as another with the same directory parent in the db
+    */
+    
+    private static boolean doesCatalogExists(String catalog) {
+        return false;
+    }
     
     public static void main(String[] args) throws Exception {
         Options options = new Options();
@@ -64,6 +77,8 @@ public class Inserter {
                 .desc("the destination path in the catalog").numberOfArgs(1).build());
         options.addOption(Option.builder(OPTION_CATALOG).required().longOpt("catalog")
                 .desc("the catalog in the archive to receive the files").numberOfArgs(1).build());
+        options.addOption(Option.builder().longOpt(OPTION_FORCE_CREATE_CATALOG)
+                .numberOfArgs(0).build());
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd;
@@ -97,7 +112,26 @@ public class Inserter {
         
         ArchiveDatabase db = ArchiveDatabase.createDefaultDatabase();
         Insert ins = db.getHandle().attach(Insert.class);
-        ins.insertAllNoMetadata(l.iterator());
+        //ins.insertAllNoMetadata(l.iterator());
+        DirectoryStructure dir;
+        try {
+            dir = new DirectoryStructure(catalog, archivePath, db);
+        }
+        catch(CatalogDoesNotExistException ex) {
+            if(cmd.hasOption(OPTION_FORCE_CREATE_CATALOG)) {
+                LOG.info("Catalog does not exist. Now creating it...");
+                db.getInsertObject().createCatalog(catalog);
+                dir = new DirectoryStructure(catalog, archivePath, db);
+            }
+            else {
+                LOG.error("Catalog does not exist: " + catalog);
+                System.err.println("There is no catalog by name \"" + catalog + 
+                        "\" in the archive. Use --" + OPTION_FORCE_CREATE_CATALOG + 
+                        " to create it.");
+                formatter.printHelp(Inserter.class.getSimpleName(), options);
+                System.exit(-1);
+            }
+        }
         
         db.close();
     }

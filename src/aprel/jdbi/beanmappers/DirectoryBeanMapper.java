@@ -14,24 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package aprel.jdbi;
+package aprel.jdbi.beanmappers;
 
-import aprel.db.beans.FileBean;
-import java.util.Iterator;
-import org.skife.jdbi.v2.sqlobject.Bind;
-import org.skife.jdbi.v2.sqlobject.BindBean;
-import org.skife.jdbi.v2.sqlobject.SqlBatch;
-import org.skife.jdbi.v2.sqlobject.SqlUpdate;
+import aprel.db.beans.DirectoryBean;
+import org.skife.jdbi.v2.BeanMapper;
 
 /**
  *
  * @author Aprel
  */
-public interface Insert {
-    @SqlBatch("INSERT INTO files (filename, md5, size, onOptical, onLocalDisc) "
-            + "VALUES (:filename, :md5, :size, :onOptical, :onLocalDisc)")
-    public void insertAllNoMetadata(@BindBean Iterator<FileBean> beans);
+public class DirectoryBeanMapper extends BeanMapper<DirectoryBean> {
+
+    public DirectoryBeanMapper() {
+        super(DirectoryBean.class);
+    }
     
-    @SqlUpdate("INSERT INTO directories (dirName) VALUES (:name)")
-    public void createCatalog(@Bind("name") String name);
 }

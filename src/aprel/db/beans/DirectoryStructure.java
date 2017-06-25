@@ -14,24 +14,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package aprel.jdbi;
+package aprel.db.beans;
 
-import aprel.db.beans.FileBean;
-import java.util.Iterator;
-import org.skife.jdbi.v2.sqlobject.Bind;
-import org.skife.jdbi.v2.sqlobject.BindBean;
-import org.skife.jdbi.v2.sqlobject.SqlBatch;
-import org.skife.jdbi.v2.sqlobject.SqlUpdate;
+import aprel.ArchiveDatabase;
+import org.skife.jdbi.v2.Handle;
 
 /**
  *
  * @author Aprel
  */
-public interface Insert {
-    @SqlBatch("INSERT INTO files (filename, md5, size, onOptical, onLocalDisc) "
-            + "VALUES (:filename, :md5, :size, :onOptical, :onLocalDisc)")
-    public void insertAllNoMetadata(@BindBean Iterator<FileBean> beans);
+public class DirectoryStructure {
+    private final String path;
+    private final ArchiveDatabase db;
+    private final Handle handle;
+    private final DirectoryBean catalogBean;
     
-    @SqlUpdate("INSERT INTO directories (dirName) VALUES (:name)")
-    public void createCatalog(@Bind("name") String name);
+    public DirectoryStructure(String catalog, String path, ArchiveDatabase db) 
+            throws CatalogDoesNotExistException {
+        this.path = path;
+        this.db = db;
+        handle = db.getHandle();
+        catalogBean = db.getQueryObject().getCatalog(catalog);
+        if(catalogBean == null)
+            throw new CatalogDoesNotExistException(catalog);
+        System.out.println(catalogBean);
+    }
 }

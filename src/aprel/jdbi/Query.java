@@ -16,22 +16,23 @@
  */
 package aprel.jdbi;
 
-import aprel.db.beans.FileBean;
-import java.util.Iterator;
+import aprel.db.beans.DirectoryBean;
+import aprel.jdbi.beanmappers.DirectoryBeanMapper;
+import java.util.List;
 import org.skife.jdbi.v2.sqlobject.Bind;
-import org.skife.jdbi.v2.sqlobject.BindBean;
-import org.skife.jdbi.v2.sqlobject.SqlBatch;
-import org.skife.jdbi.v2.sqlobject.SqlUpdate;
+import org.skife.jdbi.v2.sqlobject.SqlQuery;
+import org.skife.jdbi.v2.sqlobject.customizers.Mapper;
 
 /**
  *
  * @author Aprel
  */
-public interface Insert {
-    @SqlBatch("INSERT INTO files (filename, md5, size, onOptical, onLocalDisc) "
-            + "VALUES (:filename, :md5, :size, :onOptical, :onLocalDisc)")
-    public void insertAllNoMetadata(@BindBean Iterator<FileBean> beans);
+public interface Query {
+    @SqlQuery("SELECT * FROM directories WHERE dirParentId IS NULL")
+    @Mapper(DirectoryBeanMapper.class)
+    public List<DirectoryBean> getCatalogs();
     
-    @SqlUpdate("INSERT INTO directories (dirName) VALUES (:name)")
-    public void createCatalog(@Bind("name") String name);
+    @SqlQuery("SELECT * FROM directories WHERE dirParentId IS NULL AND dirName= :name")
+    @Mapper(DirectoryBeanMapper.class)
+    public DirectoryBean getCatalog(@Bind("name") String catalogName);
 }

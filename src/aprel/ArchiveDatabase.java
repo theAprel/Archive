@@ -16,6 +16,8 @@
  */
 package aprel;
 
+import aprel.jdbi.Insert;
+import aprel.jdbi.Query;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -37,6 +39,8 @@ public class ArchiveDatabase {
     private final String user, pass, sqlServer, dbName;
     private final DBI dbi;
     private final Handle h;
+    private Query query;
+    private Insert insert;
     
     private static final Logger LOG = LoggerFactory.getLogger(ArchiveDatabase.class);
     
@@ -51,6 +55,18 @@ public class ArchiveDatabase {
                 (sqlServer.endsWith("/") ? "" : "/") + this.dbName,
                 this.user, this.pass);
         h = dbi.open();
+    }
+    
+    public Query getQueryObject() {
+        if(query == null)
+            query = h.attach(Query.class);
+        return query;
+    }
+    
+    public Insert getInsertObject() {
+        if(insert == null)
+            insert = h.attach(Insert.class);
+        return insert;
     }
     
     public Handle getHandle() {
