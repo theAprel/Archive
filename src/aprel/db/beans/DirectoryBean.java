@@ -24,6 +24,7 @@ import java.util.Objects;
  */
 public class DirectoryBean {
     private String id, dirName, dirParentId;
+    private DirectoryBean parent;
 
     public String getId() {
         return id;
@@ -42,11 +43,22 @@ public class DirectoryBean {
     }
 
     public String getDirParentId() {
+        if(parent != null)
+            return parent.getId();
         return dirParentId;
     }
 
     public void setDirParentId(String dirParentId) {
         this.dirParentId = dirParentId;
+        parent = null; //remove reference to parent
+    }
+
+    public DirectoryBean getParent() {
+        return parent;
+    }
+
+    public void setParent(DirectoryBean parent) {
+        this.parent = parent;
     }
 
     @Override

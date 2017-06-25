@@ -40,6 +40,7 @@ public class FileBean {
     private long size;
     private boolean onOptical, onLocalDisc;
     private MediaMetadata media;
+    private DirectoryBean parent;
     
     private static final Logger LOG = LoggerFactory.getLogger(FileBean.class);
 
@@ -76,12 +77,24 @@ public class FileBean {
     }
     
     public String getDirParentId() {
+        if(parent != null)
+            return parent.getId();
         return dirParentId;
     }
 
     @XmlTransient
     public void setDirParentId(String dirParentId) {
         this.dirParentId = dirParentId;
+        parent = null;
+    }
+
+    public DirectoryBean getParent() {
+        return parent;
+    }
+
+    @XmlTransient
+    public void setParent(DirectoryBean parent) {
+        this.parent = parent;
     }
 
     public String getMd5() {
