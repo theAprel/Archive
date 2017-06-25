@@ -20,6 +20,7 @@ import aprel.db.beans.DirectoryBean;
 import aprel.jdbi.beanmappers.DirectoryBeanMapper;
 import java.util.List;
 import org.skife.jdbi.v2.sqlobject.Bind;
+import org.skife.jdbi.v2.sqlobject.BindBean;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.customizers.Mapper;
 
@@ -35,4 +36,12 @@ public interface Query {
     @SqlQuery("SELECT * FROM directories WHERE dirParentId IS NULL AND dirName= :name")
     @Mapper(DirectoryBeanMapper.class)
     public DirectoryBean getCatalog(@Bind("name") String catalogName);
+    
+    @SqlQuery("SELECT * FROM directories WHERE dirParentId= :id")
+    @Mapper(DirectoryBeanMapper.class)
+    public List<DirectoryBean> getSubdirectories(@BindBean DirectoryBean parent);
+    
+    @SqlQuery("SELECT * FROM directories WHERE dirName= :dir AND parentDirId= :parent")
+    @Mapper(DirectoryBeanMapper.class)
+    public DirectoryBean getDirectory(@Bind("dir") String dirName, @Bind("parent") String parentDirId);
 }
