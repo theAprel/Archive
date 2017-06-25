@@ -145,7 +145,11 @@ public class FileBean {
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 89 * hash + Objects.hashCode(this.id);
+        hash = 59 * hash + Objects.hashCode(this.id);
+        hash = 59 * hash + Objects.hashCode(this.path);
+        hash = 59 * hash + Objects.hashCode(this.dirParentId);
+        hash = 59 * hash + Objects.hashCode(this.md5);
+        hash = 59 * hash + (int) (this.size ^ (this.size >>> 32));
         return hash;
     }
 
@@ -161,6 +165,8 @@ public class FileBean {
             return false;
         }
         final FileBean other = (FileBean) obj;
+        if(this.id == null || other.id == null)
+            throw new IllegalStateException("Comparing an instance with uninitializwed ID");
         return Objects.equals(this.id, other.id);
     }
 

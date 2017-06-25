@@ -52,7 +52,9 @@ public class DirectoryBean {
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 71 * hash + Objects.hashCode(this.id);
+        hash = 31 * hash + Objects.hashCode(this.id);
+        hash = 31 * hash + Objects.hashCode(this.dirName);
+        hash = 31 * hash + Objects.hashCode(this.dirParentId);
         return hash;
     }
 
@@ -68,6 +70,8 @@ public class DirectoryBean {
             return false;
         }
         final DirectoryBean other = (DirectoryBean) obj;
+        if(this.id == null || other.id == null)
+            throw new IllegalStateException("Comparing an instance with uninitializwed ID");
         return Objects.equals(this.id, other.id);
     }
 
