@@ -1,9 +1,10 @@
 Table: files
 
-(Serial) id | filename | dirParentId | md5 | size | catalog (i.e. optical-media set, for numbering, e.g. main, videos, anime, etc.) | BOOL onOptical | BOOL onLocalDisc | localStoragePath (tmp until written to optical, or has been retrieved)
+(Serial) id | filename | dirParentId | md5 | size | BOOL onOptical | BOOL onLocalDisc | localStoragePath (tmp until written to optical, or has been retrieved)
 
 
 Table: directories
+(catalogs are implemented as directories with NULL dirParentId)
 
 (Serial) id | dirName | dirParentId
 

@@ -32,10 +32,10 @@ import org.slf4j.LoggerFactory;
 @XmlType(propOrder = {"size", "md5", "media"} )
 public class FileBean {
     /*
-    (Serial) id | filename | dirParentId | md5 | size | catalog
+    (Serial) id | filename | dirParentId | md5 | size
     | BOOL onOptical | BOOL onLocalDisc | localStoragePath
     */
-    private String id, path, filename, dirParentId, md5, catalog, localStoragePath;
+    private String id, path, filename, dirParentId, md5, localStoragePath;
     private long size;
     private boolean onOptical, onLocalDisc;
     private MediaMetadata media;
@@ -92,15 +92,6 @@ public class FileBean {
         this.md5 = md5;
     }
 
-    public String getCatalog() {
-        return catalog;
-    }
-
-    @XmlTransient
-    public void setCatalog(String catalog) {
-        this.catalog = catalog;
-    }
-
     public String getLocalStoragePath() {
         return localStoragePath;
     }
@@ -154,7 +145,7 @@ public class FileBean {
     public String toString() {
         return "FileBean{" + "id=" + id + ", path=" + path + ", filename=" + 
                 filename + ", dirParentId=" + dirParentId + ", md5=" + md5 + 
-                ", catalog=" + catalog + ", localStoragePath=" + localStoragePath + 
+                ", localStoragePath=" + localStoragePath + 
                 ", size=" + size + ", onOptical=" + onOptical + ", onLocalDisc=" + 
                 onLocalDisc + ", media=" + media + '}';
     }
