@@ -1,0 +1,124 @@
+/*
+ * Copyright (C) 2017 Aprel
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package aprel.db.beans;
+
+import aprel.ArchiveDatabase;
+import com.google.common.base.CharMatcher;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ *
+ * Manages multiple <code>DirectoryStructure</code>. This is necessary for 
+ * adding groups of files to the database because they may need to be inserted 
+ * into multiple directories. It is also used for navigating through directories 
+ * (e.g. by a GUI).
+ * @author Aprel
+ */
+public class Directories {
+    private final Map<String, DirectoryStructure> pathsToDirs;
+    private final DirectoryBean catalogBean;
+    private final LinkedList<DirectoryBean> basePath;
+    private final LinkedList<DirectoryBean> newDirs = new LinkedList<>();
+    private final ArchiveDatabase db;
+    
+    private static final Logger LOG = LoggerFactory.getLogger(Directories.class);
+    
+    public Directories(String catalog, String path, ArchiveDatabase db) 
+            throws CatalogDoesNotExistException {
+        path = DirectoryStructure.sanitizePath(path);
+        this.db = db;
+        catalogBean = DirectoryStructure.getCatalog(catalog, db);
+        pathsToDirs = new HashMap<>();
+        basePath = new LinkedList<>();
+        basePath.add(catalogBean);
+        final String[] pathParts = path.split("/");
+        //create the base path. Note: files cannot be added into the base path
+        if(pathParts[0].length() != 0) { // == 0 when path is just the root dir, i.e. ""
+            for(String s : pathParts) {
+                if(s.length() == 0) {
+                    String msg = "Path contains zero-length directories.";
+                    LOG.error(msg, path, pathParts);
+                    throw new IllegalArgumentException(msg);
+                }
+                DirectoryBean nextDir = DirectoryStructure.getDir(s, basePath.getLast().getId(), db);
+                if(nextDir == null) {
+                    String msg = "Base path contains a directory not in the archive: " + s;
+                    LOG.error(msg, path, pathParts);
+                    throw new IllegalArgumentException(msg);
+                }
+                basePath.add(nextDir);
+            }
+        }
+    }
+    
+    /**
+     * Adds files to the end of this <code>Directories</code>' base path.
+     * @param files 
+     */
+    public void addFiles(Collection<FileBean> files) {
+        //first create DirectoryStructures for each diversion off of path
+        Multimap<String,FileBean> pathToBean = HashMultimap.create();
+        files.stream().forEach(f -> {
+            final String fullName = f.getPath();
+            final int endIndex = fullName.lastIndexOf("/");
+            //no "/" separator == file is at root
+            pathToBean.put(endIndex == -1 ? "" : fullName.substring(0, endIndex), f);
+        });
+        
+        final Set<String> keys = pathToBean.keySet();
+        final List<String> orderedPaths = keys.parallelStream()
+                .filter(k -> k.length() > 0).sorted(new Comparator<String>() {
+            private final CharMatcher matcher = CharMatcher.is('/');
+            @Override
+            public int compare(String o1, String o2) {
+                return matcher.countIn(o1) - matcher.countIn(o2);
+            }
+        }).collect(Collectors.toList());
+        System.out.println(orderedPaths);
+        //then, line up which files are going into which dirs
+        
+        
+        //then, make sure each that no 2 files share a name outside (i.e. to be added) or inside the archive
+        
+        
+        //then, set the localStoragePath field for each file, as well as other relevant fields
+        
+        
+        //all done! Ready to be committed to the database by another method
+    }
+    
+    public List<String> getDirectoriesToBeCreated() {
+        String base = basePath.stream().map(DirectoryBean::getDirName)
+                .collect(Collectors.joining("/"));
+        List<String> dirs = newDirs.stream().map(d -> {
+            LOG.debug("To be created:", d);
+            return base + d.getDirName();})
+                .collect(Collectors.toList());
+        return dirs;
+    }
+}

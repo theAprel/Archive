@@ -23,7 +23,7 @@ import com.google.common.collect.Table;
 import java.io.Console;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import org.skife.jdbi.v2.Handle;
 import org.slf4j.Logger;
@@ -34,55 +34,57 @@ import org.slf4j.LoggerFactory;
  * @author Aprel
  */
 public class DirectoryStructure {
-    private final String path;
     private final ArchiveDatabase db;
     private final Handle handle;
     private final DirectoryBean catalogBean;
-    private final List<DirectoryBean> beanPath;
+    private final LinkedList<DirectoryBean> beanPath;
     /**
      * Take care to add dirs to list in the order that they should be created.
      */
-    private final List<DirectoryBean> newDirectories;
     private final List<FileBean> newFiles;
-    private final Table<String,String,DirectoryBean> dirCache = HashBasedTable.create();
+    private static final Table<String,String,DirectoryBean> CACHE_DIR = HashBasedTable.create();
     
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryStructure.class);
     
-    public DirectoryStructure(String catalog, String path, ArchiveDatabase db) 
-            throws CatalogDoesNotExistException {
-        path = path.startsWith("/") ? path.substring(1) : path;
-        path += path.endsWith("/") ? "" : "/";
-        final String[] pathParts = path.split("/");
-        for(String s : pathParts) {
-            if(s.length() == 0) {
-                String msg = "Path contains zero-length directories.";
-                LOG.error(msg, path, pathParts);
-                throw new IllegalArgumentException(msg);
-            }
-        }
-        this.path = path;
+    DirectoryStructure(DirectoryBean catalog, List<DirectoryBean> path, ArchiveDatabase db) {
+        this.beanPath = new LinkedList<>(path);
         this.db = db;
         handle = db.getHandle();
-        catalogBean = db.getQueryObject().getCatalog(catalog);
-        if(catalogBean == null)
-            throw new CatalogDoesNotExistException(catalog);
-        beanPath = new ArrayList<>();
-        beanPath.add(catalogBean);
-        newDirectories = new ArrayList<>();
-        newFiles = new ArrayList<>();
-        for(String dir : pathParts) {
-            DirectoryBean parentBean = beanPath.get(beanPath.size()-1);
-            String parentId = parentBean.getId();
-            DirectoryBean bean = getDir(dir, parentId);
-            if(bean == null) {
-                LOG.debug("Directory does not exist in archive: " + dir);
-                bean = new DirectoryBean();
-                bean.setDirName(dir);
-                bean.setParent(parentBean);
-                newDirectories.add(bean);
-            }
-            beanPath.add(bean);
+        catalogBean = catalog;
+        if(beanPath.get(0) != catalogBean) {
+            LOG.debug("Catalog not at the start of directory path. Appended to start.");
+            beanPath.addFirst(catalog);
         }
+        newFiles = new ArrayList<>();
+//        for(String dir : pathParts) {
+//            DirectoryBean parentBean = beanPath.get(beanPath.size()-1);
+//            String parentId = parentBean.getId();
+//            DirectoryBean bean = getDir(dir, parentId);
+//            if(bean == null) {
+//                LOG.debug("Directory does not exist in archive: " + dir);
+//                bean = new DirectoryBean();
+//                bean.setDirName(dir);
+//                bean.setParent(parentBean);
+//                newDirectories.add(bean);
+//            }
+//            beanPath.add(bean);
+//        }
+    }
+    
+    static String sanitizePath(String path) {
+        if(path == null || path.equals(""))
+            throw new IllegalArgumentException("Path is empty or null");
+        path = path.startsWith("/") ? path.substring(1) : path;
+        path = path.endsWith("/") ? path.substring(0, path.length()-1) : path;
+        return path;
+    }
+    
+    static DirectoryBean getCatalog(String name, ArchiveDatabase db) 
+            throws CatalogDoesNotExistException {
+        DirectoryBean bean = db.getQueryObject().getCatalog(name);
+        if(bean == null)
+            throw new CatalogDoesNotExistException(name);
+        return bean;
     }
     
     public void addFiles(Collection<FileBean> files) {
@@ -95,34 +97,14 @@ public class DirectoryStructure {
         }).max().getAsInt();
     }
     
-    private DirectoryBean getDir(String name, String dirParentId) {
-        DirectoryBean cachedCopy = dirCache.get(name, dirParentId);
+    static DirectoryBean getDir(String name, String dirParentId, ArchiveDatabase db) {
+        DirectoryBean cachedCopy = CACHE_DIR.get(name, dirParentId);
         if(cachedCopy != null)
             return cachedCopy;
         DirectoryBean bean = db.getQueryObject().getDirectory(name, dirParentId);
-        dirCache.put(name, dirParentId, bean);
+        if(bean != null)
+            CACHE_DIR.put(name, dirParentId, bean);
         return bean;
-    }
-    
-    private boolean directoryExists(String name, String dirParentId) {
-        return getDir(name, dirParentId) == null;
-    }
-    
-    private boolean shouldCreateDirectory(String name) {
-        Console console = System.console();
-        if(console == null) {
-            LOG.warn("No system console. Cowardly refusing to create a new directory.");
-            return false;
-        }
-        for(;;) {
-            System.out.println("Directory \"" + name + "\" does not exist. Should it be created? Y/N");
-            String response = console.readLine().toUpperCase();
-            switch(response) {
-                case "Y": return true;
-                case "N": return false;
-                default: System.out.println("Try again.");
-            }
-        }
     }
     
     /**
