@@ -17,8 +17,13 @@
 package aprel.db.beans;
 
 import aprel.ArchiveDatabase;
+import com.google.common.base.CharMatcher;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import java.io.Console;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import org.skife.jdbi.v2.Handle;
 import org.slf4j.Logger;
@@ -34,12 +39,19 @@ public class DirectoryStructure {
     private final Handle handle;
     private final DirectoryBean catalogBean;
     private final List<DirectoryBean> beanPath;
+    /**
+     * Take care to add dirs to list in the order that they should be created.
+     */
+    private final List<DirectoryBean> newDirectories;
+    private final List<FileBean> newFiles;
+    private final Table<String,String,DirectoryBean> dirCache = HashBasedTable.create();
     
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryStructure.class);
     
     public DirectoryStructure(String catalog, String path, ArchiveDatabase db) 
             throws CatalogDoesNotExistException {
         path = path.startsWith("/") ? path.substring(1) : path;
+        path += path.endsWith("/") ? "" : "/";
         final String[] pathParts = path.split("/");
         for(String s : pathParts) {
             if(s.length() == 0) {
@@ -56,22 +68,40 @@ public class DirectoryStructure {
             throw new CatalogDoesNotExistException(catalog);
         beanPath = new ArrayList<>();
         beanPath.add(catalogBean);
+        newDirectories = new ArrayList<>();
+        newFiles = new ArrayList<>();
         for(String dir : pathParts) {
-            String parentId = beanPath.get(beanPath.size()-1).getId();
+            DirectoryBean parentBean = beanPath.get(beanPath.size()-1);
+            String parentId = parentBean.getId();
             DirectoryBean bean = getDir(dir, parentId);
             if(bean == null) {
-                LOG.info("Directory does not exist in archive: " + dir);
-                if(shouldCreateDirectory(dir))
-                    createDirectory(dir, parentId);
-                else
-                    throw new IllegalStateException("Directory does not exist and should not be created: " + dir);
+                LOG.debug("Directory does not exist in archive: " + dir);
+                bean = new DirectoryBean();
+                bean.setDirName(dir);
+                bean.setParent(parentBean);
+                newDirectories.add(bean);
             }
             beanPath.add(bean);
         }
     }
     
+    public void addFiles(Collection<FileBean> files) {
+        if(files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("Cannot add a list of empty files");
+        }
+        DirectoryBean relativeRoot = beanPath.get(beanPath.size()-1);
+        int longestPath = files.parallelStream().mapToInt(f -> {
+            return CharMatcher.is('/').countIn(f.getPath());
+        }).max().getAsInt();
+    }
+    
     private DirectoryBean getDir(String name, String dirParentId) {
-        return db.getQueryObject().getDirectory(name, dirParentId);
+        DirectoryBean cachedCopy = dirCache.get(name, dirParentId);
+        if(cachedCopy != null)
+            return cachedCopy;
+        DirectoryBean bean = db.getQueryObject().getDirectory(name, dirParentId);
+        dirCache.put(name, dirParentId, bean);
+        return bean;
     }
     
     private boolean directoryExists(String name, String dirParentId) {
@@ -101,17 +131,17 @@ public class DirectoryStructure {
      * @param parentDirId
      * @return 
      */
-    private DirectoryBean createDirectory(String dirName, String parentDirId) {
-        LOG.debug("Creating directory " + dirName + " with parent " + parentDirId);
-        String id = db.getInsertObject().createDirectory(dirName, parentDirId);
-        if(id == null) {
-            throw new IllegalStateException("Did not receive new serial id when creating dir");
-        }
-        DirectoryBean bean = new DirectoryBean();
-        bean.setId(id);
-        bean.setDirName(dirName);
-        bean.setDirParentId(parentDirId);
-        LOG.debug("Directory created:", bean);
-        return bean;
-    }
+//    private DirectoryBean createDirectory(String dirName, String parentDirId) {
+//        LOG.debug("Creating directory " + dirName + " with parent " + parentDirId);
+//        String id = db.getInsertObject().createDirectory(dirName, parentDirId);
+//        if(id == null) {
+//            throw new IllegalStateException("Did not receive new serial id when creating dir");
+//        }
+//        DirectoryBean bean = new DirectoryBean();
+//        bean.setId(id);
+//        bean.setDirName(dirName);
+//        bean.setDirParentId(parentDirId);
+//        LOG.debug("Directory created:", bean);
+//        return bean;
+//    }
 }
