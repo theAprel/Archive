@@ -33,6 +33,11 @@ public interface Query {
     @Mapper(DirectoryBeanMapper.class)
     public List<DirectoryBean> getCatalogs();
     
+    /**
+     * Call DirectoryStructure.getCatalog
+     * @param catalogName
+     * @return 
+     */
     @SqlQuery("SELECT * FROM directories WHERE dirParentId IS NULL AND dirName= :name")
     @Mapper(DirectoryBeanMapper.class)
     public DirectoryBean getCatalog(@Bind("name") String catalogName);
@@ -41,7 +46,7 @@ public interface Query {
     @Mapper(DirectoryBeanMapper.class)
     public List<DirectoryBean> getSubdirectories(@BindBean DirectoryBean parent);
     
-    @SqlQuery("SELECT * FROM directories WHERE dirName= :dir AND parentDirId= :parent")
+    @SqlQuery("SELECT * FROM directories WHERE dirName= :dir AND dirParentId= :parent")
     @Mapper(DirectoryBeanMapper.class)
     public DirectoryBean getDirectory(@Bind("dir") String dirName, @Bind("parent") String parentDirId);
 }
