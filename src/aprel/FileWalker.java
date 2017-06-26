@@ -171,7 +171,7 @@ public class FileWalker implements FileVisitor<Path> {
             md5String = md5Map.get(relative.toString());
         }
         if(doMd5 && md5String == null) {
-            @SuppressWarnings("deprecated")
+            @SuppressWarnings("deprecation")
             HashFunction md5 = Hashing.md5();
             HashCode hc = com.google.common.io.Files.asByteSource(file.toFile()).hash(md5);
             md5String = hc.toString();
