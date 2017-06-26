@@ -18,11 +18,13 @@ package aprel;
 
 import aprel.db.beans.FileBean;
 import aprel.db.beans.FilesRootContainer;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
@@ -30,9 +32,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -172,25 +171,10 @@ public class FileWalker implements FileVisitor<Path> {
             md5String = md5Map.get(relative.toString());
         }
         if(doMd5 && md5String == null) {
-            MessageDigest md = null;
-            try {
-                md = MessageDigest.getInstance("MD5");
-            }
-            catch(NoSuchAlgorithmException ex) {
-                LOG.error("This JVM has no MD5 checksum implementation!", ex);
-                System.exit(-1);
-            }
-            try (InputStream is = Files.newInputStream(Paths.get(file.toString()));
-                    DigestInputStream dis = new DigestInputStream(is, md)) {
-                //https://stackoverflow.com/questions/304268/getting-a-files-md5-checksum-in-java
-                /* Read decorated stream (dis) to EOF as normal... */
-                final int bufferSize = 1024*1024*1024;
-                while(dis.read(new byte[bufferSize]) != -1) {
-                    //keep reading bytes into the digest
-                }
-                byte[] md5Bytes = md.digest();
-                md5String = javax.xml.bind.DatatypeConverter.printHexBinary(md5Bytes);
-            }
+            @SuppressWarnings("deprecated")
+            HashFunction md5 = Hashing.md5();
+            HashCode hc = com.google.common.io.Files.asByteSource(file.toFile()).hash(md5);
+            md5String = hc.toString();
         }
         bean.setMd5(md5String);
         if(md5String == null) {
