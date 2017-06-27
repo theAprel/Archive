@@ -31,9 +31,9 @@ import org.skife.jdbi.v2.sqlobject.SqlUpdate;
  */
 public interface Insert {
     @SqlBatch("INSERT INTO files (filename, dirParentId, md5, size, onOptical, onLocalDisc, localStoragePath) "
-            + "VALUES (:filename, :dirParentId, :md5, :size, :onOptical, :onLocalDisc, localStoragePath)")
+            + "VALUES (:filename, :dirParentId, :md5, :size, :onOptical, :onLocalDisc, :localStoragePath)")
     @GetGeneratedKeys
-    public List<String> insertAllNoMetadata(@BindBean Iterator<FileBean> beans);
+    public int[] insertAllNoMetadata(@BindBean Iterator<FileBean> beans);
     
     @SqlUpdate("INSERT INTO directories (dirName) VALUES (:name)")
     public void createCatalog(@Bind("name") String name);
