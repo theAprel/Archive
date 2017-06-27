@@ -55,7 +55,7 @@ public interface Query {
     
     @SqlQuery("SELECT * FROM directories WHERE dirParentId= :id")
     @Mapper(DirectoryBeanMapper.class)
-    public List<DirectoryBean> getAllDirectoriesInDirectory(String directoryId);
+    public List<DirectoryBean> getAllDirectoriesInDirectory(@Bind("id") String directoryId);
     
     //FILE QUERIES
     @SqlQuery("SELECT * FROM files WHERE dirParentId= :id")
