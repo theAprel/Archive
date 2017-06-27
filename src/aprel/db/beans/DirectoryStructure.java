@@ -135,7 +135,10 @@ public class DirectoryStructure {
     void commitToDatabase() {
         Insert ins = db.getInsertObject();
         newFiles.forEach(bean -> {
+            bean.setDirParentId(thisDir.getId());
+            LOG.debug("Inserting " + bean, bean);
             String id = ins.insertAllNoMetadata(bean);
+            LOG.debug("ID: " + id);
             bean.setId(id);
         });
     }
