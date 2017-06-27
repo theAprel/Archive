@@ -17,14 +17,11 @@
 package aprel.db.beans;
 
 import aprel.ArchiveDatabase;
+import aprel.jdbi.Insert;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import com.google.common.primitives.Ints;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -132,17 +129,15 @@ public class DirectoryStructure {
      * of the code base requires knowing these ids for newly-inserted files, this 
      * method will have to be re-written to not use a batch insert or another way 
      * to get the ids as Strings from the library will be necessary.
+     * 
+     * This method now forgoes @SqlBatch and properly receives the ids as Strings.
      */
     void commitToDatabase() {
-        //List<String> ids = db.getInsertObject().insertAllNoMetadata(newFiles.iterator());
-        int[] ids = db.getInsertObject().insertAllNoMetadata(newFiles.iterator());
-        if(ids.length != newFiles.size()) 
-            throw new IllegalStateException("DB returned a different number of IDs"
-                    + " from files inserted: " + ids.length + " != " + newFiles.size());
-        Iterator<Integer> idIterator = Ints.asList(ids).iterator();
-        Iterator<FileBean> beanIterator = newFiles.iterator();
-        while(idIterator.hasNext())
-            beanIterator.next().setId(idIterator.next()+"");
+        Insert ins = db.getInsertObject();
+        newFiles.forEach(bean -> {
+            String id = ins.insertAllNoMetadata(bean);
+            bean.setId(id);
+        });
     }
     
     static DirectoryBean getDir(String name, String dirParentId, ArchiveDatabase db) {

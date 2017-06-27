@@ -30,10 +30,22 @@ import org.skife.jdbi.v2.sqlobject.SqlUpdate;
  * @author Aprel
  */
 public interface Insert {
+    /**
+     * Don't use this; it is buggy and may not return IDs. It throws a 
+     * java.lang.IllegalArgumentException: Unable generate keys for a not prepared batch
+     * @param beans
+     * @return 
+     */
+    @Deprecated
     @SqlBatch("INSERT INTO files (filename, dirParentId, md5, size, onOptical, onLocalDisc, localStoragePath) "
             + "VALUES (:filename, :dirParentId, :md5, :size, :onOptical, :onLocalDisc, :localStoragePath)")
     @GetGeneratedKeys
     public int[] insertAllNoMetadata(@BindBean Iterator<FileBean> beans);
+    
+    @SqlUpdate("INSERT INTO files (filename, dirParentId, md5, size, onOptical, onLocalDisc, localStoragePath) "
+            + "VALUES (:filename, :dirParentId, :md5, :size, :onOptical, :onLocalDisc, :localStoragePath)")
+    @GetGeneratedKeys
+    public String insertAllNoMetadata(@BindBean FileBean bean);
     
     @SqlUpdate("INSERT INTO directories (dirName) VALUES (:name)")
     public void createCatalog(@Bind("name") String name);
