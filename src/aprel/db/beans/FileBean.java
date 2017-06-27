@@ -45,6 +45,10 @@ public class FileBean {
     
     private static final Logger LOG = LoggerFactory.getLogger(FileBean.class);
 
+    public boolean existsInDatabase() {
+        return idHasBeenSet;
+    }
+    
     public String getId() {
         if(!idHasBeenSet)
             throw new IllegalStateException("getId that has not been set");

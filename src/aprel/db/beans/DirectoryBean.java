@@ -27,6 +27,10 @@ public class DirectoryBean {
     private DirectoryBean parent;
     private boolean idHasBeenSet = false;
 
+    public boolean existsInDatabase() {
+        return idHasBeenSet;
+    }
+    
     public String getId() {
         if(!idHasBeenSet)
             throw new IllegalStateException("getId that has not been set");
