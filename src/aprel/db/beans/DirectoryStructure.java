@@ -37,8 +37,6 @@ import org.slf4j.LoggerFactory;
 public class DirectoryStructure {
     private final ArchiveDatabase db;
     private final Handle handle;
-    private final DirectoryBean catalogBean;
-    private final LinkedList<DirectoryBean> beanPath;
     private final DirectoryBean thisDir;
     /**
      * Take care to add dirs to list in the order that they should be created.
@@ -50,16 +48,10 @@ public class DirectoryStructure {
     
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryStructure.class);
     
-    DirectoryStructure(DirectoryBean catalog, List<DirectoryBean> path, ArchiveDatabase db) {
-        this.beanPath = new LinkedList<>(path);
+    DirectoryStructure(DirectoryBean dir, ArchiveDatabase db) {
         this.db = db;
         handle = db.getHandle();
-        catalogBean = catalog;
-        if(beanPath.get(0) != catalogBean) {
-            LOG.debug("Catalog not at the start of directory path. Appended to start.");
-            beanPath.addFirst(catalog);
-        }
-        thisDir = beanPath.getLast();
+        thisDir = dir;
         newFiles = new ArrayList<>();
         if(thisDir.existsInDatabase()) {
             files = db.getQueryObject().getAllFilesInDirectoryBesidesOtherDirectories(thisDir.getId());
