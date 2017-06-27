@@ -25,13 +25,17 @@ import java.util.Objects;
 public class DirectoryBean {
     private String id, dirName, dirParentId;
     private DirectoryBean parent;
+    private boolean idHasBeenSet = false;
 
     public String getId() {
+        if(!idHasBeenSet)
+            throw new IllegalStateException("getId that has not been set");
         return id;
     }
 
     public void setId(String id) {
         this.id = id;
+        idHasBeenSet = true;
     }
 
     public String getDirName() {

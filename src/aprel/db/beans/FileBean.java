@@ -41,16 +41,20 @@ public class FileBean {
     private boolean onOptical, onLocalDisc;
     private MediaMetadata media;
     private DirectoryBean parent;
+    private boolean idHasBeenSet = false;
     
     private static final Logger LOG = LoggerFactory.getLogger(FileBean.class);
 
     public String getId() {
+        if(!idHasBeenSet)
+            throw new IllegalStateException("getId that has not been set");
         return id;
     }
 
     @XmlTransient
     public void setId(String id) {
         this.id = id;
+        idHasBeenSet = true;
     }
 
     public String getFilename() {
