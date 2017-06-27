@@ -127,7 +127,7 @@ public class Inserter {
                 return;
             }
         }
-        directories.addFiles(l);
+        directories.addFiles(l, localPath);
         db.close();
     }
 }

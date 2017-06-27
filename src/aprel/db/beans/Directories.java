@@ -23,6 +23,7 @@ import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,8 @@ public class Directories {
     private final DirectoryBean catalogBean;
     private final LinkedList<DirectoryBean> basePath;
     private final LinkedList<DirectoryBean> newDirs = new LinkedList<>();
+    private boolean canAcceptFiles = true;
+    private Collection<DirectoryStructure> structures;
     private final ArchiveDatabase db;
     
     private static final Logger LOG = LoggerFactory.getLogger(Directories.class);
@@ -79,37 +82,150 @@ public class Directories {
     /**
      * Adds files to the end of this <code>Directories</code>' base path.
      * @param files 
+     * @param localBasePath 
      */
-    public void addFiles(Collection<FileBean> files) {
+    public void addFiles(Collection<FileBean> files, String localBasePath) {
+        if(files.isEmpty()) {
+            LOG.warn("Asked to add an empty collection of files");
+            return;
+        }
+        if(!canAcceptFiles)
+            throw new IllegalStateException("This object has already added or is"
+                    + " pending to add files to the database. You must commit "
+                    + "files and then create a new object.");
         //first create DirectoryStructures for each diversion off of path
         Multimap<String,FileBean> pathToBean = HashMultimap.create();
         files.stream().forEach(f -> {
-            final String fullName = f.getPath();
-            final int endIndex = fullName.lastIndexOf("/");
-            //no "/" separator == file is at root
-            pathToBean.put(endIndex == -1 ? "" : fullName.substring(0, endIndex), f);
+            pathToBean.put(stripLastElementOffPath(f.getPath()), f);
         });
         
         final Set<String> keys = pathToBean.keySet();
-        final List<String> orderedPaths = keys.parallelStream()
-                .filter(k -> k.length() > 0).sorted(new Comparator<String>() {
+        final Set<String> pathsThatMustExist = new HashSet<>();
+        keys.stream().forEach(key -> {
+            pathsThatMustExist.addAll(getAllSubPaths(key));
+        });
+        final List<String> orderedPaths = pathsThatMustExist.stream()
+                .filter(k -> k.length() > 0) //filter out the root path: ""
+                .sorted(new Comparator<String>() {
             private final CharMatcher matcher = CharMatcher.is('/');
             @Override
             public int compare(String o1, String o2) {
                 return matcher.countIn(o1) - matcher.countIn(o2);
             }
         }).collect(Collectors.toList());
+        final Map<String,DirectoryBean> pathKeyDirValue = new HashMap<>();
+        pathKeyDirValue.put("", basePath.getLast()); //add root of relative path
         System.out.println(orderedPaths);
+        orderedPaths.stream().forEachOrdered(relativePath -> { //make DirectoryStructures
+            final String base = stripLastElementOffPath(relativePath);
+            final String name = getLastElementOfPath(relativePath);
+            final DirectoryBean parentBean = pathKeyDirValue.get(base);
+            DirectoryBean dirBean;
+            if(newDirs.parallelStream().anyMatch(x -> x == parentBean)) {
+                //this directory's parent also has not been created yet in db
+                //so this directory must be new as well
+                dirBean = createDirectory(name, parentBean);
+            }
+            else {
+                dirBean = DirectoryStructure.getDir(name, parentBean.getId(), db);
+                if(dirBean == null) {
+                    //see if it's in the db; else, create it
+                    dirBean = createDirectory(name, parentBean);
+                }
+            }
+            pathKeyDirValue.put(relativePath, dirBean);
+        });
+        final Map<String,DirectoryStructure> pathToDirectoryStructure = new HashMap<>();
+        orderedPaths.stream().forEachOrdered(relativePath -> {
+            pathToDirectoryStructure.put(relativePath, 
+                    new DirectoryStructure(catalogBean, 
+                            getBeanPathForPath(relativePath, pathKeyDirValue), db));
+        });
         //then, line up which files are going into which dirs
-        
+        pathToBean.asMap().forEach((k, v) -> pathToDirectoryStructure.get(k).addFiles(v));
         
         //then, make sure each that no 2 files share a name outside (i.e. to be added) or inside the archive
-        
+        //^--The DirectoryStructure class handles this
         
         //then, set the localStoragePath field for each file, as well as other relevant fields
-        
+        pathToBean.forEach((relativePath, bean) -> bean.setLocalStoragePath(
+                localBasePath + (relativePath.length() == 0 ? "" : "/") + relativePath));
         
         //all done! Ready to be committed to the database by another method
+        canAcceptFiles = false;
+        structures = pathToDirectoryStructure.values();
+    }
+    
+    public void commitToDatabase() {
+        if(canAcceptFiles)
+            throw new IllegalStateException("No files have been added");
+        //must create the missing db directory; order is critical because of references
+        //and care was taking in the addFiles method
+        newDirs.forEach(d -> {
+            d.create(db);
+            LOG.info("Created directory:", d);
+        });
+        structures.forEach(DirectoryStructure::commitToDatabase);
+    }
+    
+    /**
+     * Does not check that directory already exists in the database.
+     * This must be checked externally to this method.
+     * Does not actually create the directory in the database, but simply
+     * queues its creation.
+     */
+    private DirectoryBean createDirectory(String name, DirectoryBean parentBean) {
+        DirectoryBean child = new DirectoryBean();
+        child.setDirName(name);
+        child.setParent(parentBean);
+        newDirs.add(child);
+        return child;
+    }
+    
+    private static String stripLastElementOffPath(String path) {
+        final int endIndex = path.lastIndexOf("/");
+        //no "/" separator == file is at root
+        return endIndex == -1 ? "" : path.substring(0, endIndex);
+    }
+    
+    private static String getLastElementOfPath(String path) {
+        final int lastIndex = path.lastIndexOf("/");
+        if(lastIndex == -1)
+            return path;
+        return path.substring(lastIndex+1);
+    }
+    
+    private static Set<String> getAllSubPaths(String path) {
+        Set<String> res = new HashSet<>();
+        getAllSubPathRecursiveImpl(path, res);
+        return res;
+    }
+    
+    private static void getAllSubPathRecursiveImpl(String recurString, Set<String> set) {
+        set.add(recurString);
+        if(!recurString.contains("/"))
+            return; //all done
+        else {
+            getAllSubPathRecursiveImpl(stripLastElementOffPath(recurString), set);
+        }
+    }
+    
+    private List<DirectoryBean> getBeanPathForPath(String path, 
+            Map<String,DirectoryBean> pathToBeans) {
+        LinkedList<DirectoryBean> listPath = new LinkedList<>(basePath);
+        getBeanPathForPathRecursiveImpl(path, pathToBeans, listPath);
+        return listPath;
+    }
+    
+    private void getBeanPathForPathRecursiveImpl(String path, 
+            Map<String,DirectoryBean> pathToBeans, LinkedList<DirectoryBean> listPath) {
+        String[] parts = path.split("/", 2);
+        DirectoryBean bean = pathToBeans.get(parts[0]);
+        if(bean == null) 
+            throw new IllegalStateException("Path not found in map: " + parts[0]);
+        listPath.add(bean);
+        if(parts.length > 1)
+            getBeanPathForPathRecursiveImpl(parts[1], pathToBeans, listPath);
     }
     
     public List<String> getDirectoriesToBeCreated() {

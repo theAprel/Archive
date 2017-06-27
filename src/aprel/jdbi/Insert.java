@@ -17,8 +17,8 @@
 package aprel.jdbi;
 
 import aprel.db.beans.FileBean;
-import java.math.BigInteger;
 import java.util.Iterator;
+import java.util.List;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.BindBean;
 import org.skife.jdbi.v2.sqlobject.GetGeneratedKeys;
@@ -30,9 +30,10 @@ import org.skife.jdbi.v2.sqlobject.SqlUpdate;
  * @author Aprel
  */
 public interface Insert {
-    @SqlBatch("INSERT INTO files (filename, md5, size, onOptical, onLocalDisc) "
-            + "VALUES (:filename, :md5, :size, :onOptical, :onLocalDisc)")
-    public void insertAllNoMetadata(@BindBean Iterator<FileBean> beans);
+    @SqlBatch("INSERT INTO files (filename, dirParentId, md5, size, onOptical, onLocalDisc, localStoragePath) "
+            + "VALUES (:filename, :dirParentId, :md5, :size, :onOptical, :onLocalDisc, localStoragePath)")
+    @GetGeneratedKeys
+    public List<String> insertAllNoMetadata(@BindBean Iterator<FileBean> beans);
     
     @SqlUpdate("INSERT INTO directories (dirName) VALUES (:name)")
     public void createCatalog(@Bind("name") String name);

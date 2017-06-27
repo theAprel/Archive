@@ -17,14 +17,15 @@
 package aprel.db.beans;
 
 import aprel.ArchiveDatabase;
-import com.google.common.base.CharMatcher;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import java.io.Console;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.skife.jdbi.v2.Handle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,10 +39,13 @@ public class DirectoryStructure {
     private final Handle handle;
     private final DirectoryBean catalogBean;
     private final LinkedList<DirectoryBean> beanPath;
+    private final DirectoryBean thisDir;
     /**
      * Take care to add dirs to list in the order that they should be created.
      */
     private final List<FileBean> newFiles;
+    private final List<FileBean> files;
+    private final List<DirectoryBean> directories;
     private static final Table<String,String,DirectoryBean> CACHE_DIR = HashBasedTable.create();
     
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryStructure.class);
@@ -55,7 +59,16 @@ public class DirectoryStructure {
             LOG.debug("Catalog not at the start of directory path. Appended to start.");
             beanPath.addFirst(catalog);
         }
+        thisDir = beanPath.getLast();
         newFiles = new ArrayList<>();
+        if(thisDir.existsInDatabase()) {
+            files = db.getQueryObject().getAllFilesInDirectoryBesidesOtherDirectories(thisDir.getId());
+            directories = db.getQueryObject().getAllDirectoriesInDirectory(thisDir.getId());
+        }
+        else {
+            files = new ArrayList<>();
+            directories = new ArrayList<>();
+        }
 //        for(String dir : pathParts) {
 //            DirectoryBean parentBean = beanPath.get(beanPath.size()-1);
 //            String parentId = parentBean.getId();
@@ -87,14 +100,46 @@ public class DirectoryStructure {
         return bean;
     }
     
-    public void addFiles(Collection<FileBean> files) {
-        if(files == null || files.isEmpty()) {
-            throw new IllegalArgumentException("Cannot add a list of empty files");
+    /**
+     * Queue files to be added to the database.
+     * Check for filename duplicates but not db md5 duplicates.
+     * @param files 
+     */
+    void addFiles(Collection<FileBean> files) {
+        //test the input first
+        if(files.isEmpty()) {
+            LOG.warn("Asked to add an empty collection of files to this directory");
+            return;
         }
-        DirectoryBean relativeRoot = beanPath.get(beanPath.size()-1);
-        int longestPath = files.parallelStream().mapToInt(f -> {
-            return CharMatcher.is('/').countIn(f.getPath());
-        }).max().getAsInt();
+        //any duplicate names in the collection provided?
+        Set<String> names = files.parallelStream().map(FileBean::getFilename)
+                .collect(Collectors.toSet());
+        if(names.size() != files.size())
+            throw new IllegalArgumentException(
+                    "The provided collection contains files with the same name");
+        //any files with the same name in this directory?
+        names.retainAll(this.files);
+        //names is now useless; do not use it past the following conditional:
+        if(!names.isEmpty())
+            throw new IllegalArgumentException(
+                    "Duplicate names with files in directory " + thisDir + ": " + names);
+        //all tests are done; now queue the files to be added
+        newFiles.addAll(files);
+    }
+    
+    /**
+     * Inserts the files into the db, trusting that any missing directories have 
+     * already been created externally.
+     */
+    void commitToDatabase() {
+        List<String> ids = db.getInsertObject().insertAllNoMetadata(newFiles.iterator());
+        if(ids.size() != newFiles.size()) 
+            throw new IllegalStateException("DB returned a different number of IDs"
+                    + " from files inserted: " + ids.size() + " != " + newFiles.size());
+        Iterator<String> idIterator = ids.iterator();
+        Iterator<FileBean> beanIterator = newFiles.iterator();
+        while(idIterator.hasNext())
+            beanIterator.next().setId(idIterator.next());
     }
     
     static DirectoryBean getDir(String name, String dirParentId, ArchiveDatabase db) {

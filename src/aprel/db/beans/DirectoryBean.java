@@ -16,6 +16,7 @@
  */
 package aprel.db.beans;
 
+import aprel.ArchiveDatabase;
 import java.util.Objects;
 
 /**
@@ -68,6 +69,11 @@ public class DirectoryBean {
     public void setParent(DirectoryBean parent) {
         this.parent = parent;
     }
+    
+    void create(ArchiveDatabase db) {
+        String id = db.getInsertObject().createDirectory(getDirName(), getDirParentId());
+        setId(id);
+    }
 
     @Override
     public int hashCode() {
@@ -98,6 +104,7 @@ public class DirectoryBean {
     @Override
     public String toString() {
         return "DirectoryBean{" + "id=" + id + ", dirName=" + dirName + 
-                ", dirParentId=" + dirParentId + '}';
+                ", dirParentId=" + dirParentId + '}' +
+                (getParent() != null ? "->Parent: " + getParent().toString() : "");
     }
 }
