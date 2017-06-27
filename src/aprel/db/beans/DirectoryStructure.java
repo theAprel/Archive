@@ -109,7 +109,8 @@ public class DirectoryStructure {
             throw new IllegalArgumentException(
                     "The provided collection contains files with the same name");
         //any files with the same name in this directory?
-        names.retainAll(this.files);
+        names.retainAll(this.files.stream().map(FileBean::getFilename)
+                .collect(Collectors.toSet()));
         //names is now useless; do not use it past the following conditional:
         if(!names.isEmpty())
             throw new IllegalArgumentException(
