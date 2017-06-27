@@ -88,6 +88,7 @@ public class Inserter {
         }
         archivePath = cmd.getOptionValue(OPTION_OUTPUT_PATH);
         localPath = cmd.getOptionValue(OPTION_INPUT_PATH);
+        localPath = localPath.endsWith("/") ? localPath.substring(0, localPath.length()-1) : localPath;
         catalog = cmd.getOptionValue(OPTION_CATALOG);
         String metadataFileLoc = localPath + (localPath.endsWith("/") ? "" : "/") + "METADATA.xml";
         File metadataFile = new File(metadataFileLoc);
@@ -128,6 +129,8 @@ public class Inserter {
             }
         }
         directories.addFiles(l, localPath);
+        System.out.println(directories.getDirectoriesToBeCreated());
+        directories.commitToDatabase();
         db.close();
     }
 }

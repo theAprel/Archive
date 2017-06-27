@@ -20,6 +20,7 @@ import aprel.ArchiveDatabase;
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -115,7 +116,6 @@ public class Directories {
         }).collect(Collectors.toList());
         final Map<String,DirectoryBean> pathKeyDirValue = new HashMap<>();
         pathKeyDirValue.put("", basePath.getLast()); //add root of relative path
-        System.out.println(orderedPaths);
         orderedPaths.stream().forEachOrdered(relativePath -> { //make DirectoryStructures
             final String base = stripLastElementOffPath(relativePath);
             final String name = getLastElementOfPath(relativePath);
@@ -136,10 +136,10 @@ public class Directories {
             pathKeyDirValue.put(relativePath, dirBean);
         });
         final Map<String,DirectoryStructure> pathToDirectoryStructure = new HashMap<>();
+        pathToDirectoryStructure.put("", new DirectoryStructure(basePath.getLast(), db));
         orderedPaths.stream().forEachOrdered(relativePath -> {
             pathToDirectoryStructure.put(relativePath, 
-                    new DirectoryStructure(catalogBean, 
-                            getBeanPathForPath(relativePath, pathKeyDirValue), db));
+                    new DirectoryStructure(pathKeyDirValue.get(relativePath), db));
         });
         //then, line up which files are going into which dirs
         pathToBean.asMap().forEach((k, v) -> pathToDirectoryStructure.get(k).addFiles(v));
@@ -210,31 +210,8 @@ public class Directories {
         }
     }
     
-    private List<DirectoryBean> getBeanPathForPath(String path, 
-            Map<String,DirectoryBean> pathToBeans) {
-        LinkedList<DirectoryBean> listPath = new LinkedList<>(basePath);
-        getBeanPathForPathRecursiveImpl(path, pathToBeans, listPath);
-        return listPath;
-    }
-    
-    private void getBeanPathForPathRecursiveImpl(String path, 
-            Map<String,DirectoryBean> pathToBeans, LinkedList<DirectoryBean> listPath) {
-        String[] parts = path.split("/", 2);
-        DirectoryBean bean = pathToBeans.get(parts[0]);
-        if(bean == null) 
-            throw new IllegalStateException("Path not found in map: " + parts[0]);
-        listPath.add(bean);
-        if(parts.length > 1)
-            getBeanPathForPathRecursiveImpl(parts[1], pathToBeans, listPath);
-    }
-    
     public List<String> getDirectoriesToBeCreated() {
-        String base = basePath.stream().map(DirectoryBean::getDirName)
-                .collect(Collectors.joining("/"));
-        List<String> dirs = newDirs.stream().map(d -> {
-            LOG.debug("To be created:", d);
-            return base + d.getDirName();})
-                .collect(Collectors.toList());
-        return dirs;
+        newDirs.stream().forEach(d -> LOG.debug("To be created:" + d, d));
+        return newDirs.stream().map(DirectoryBean::getDirName).collect(Collectors.toList());
     }
 }
