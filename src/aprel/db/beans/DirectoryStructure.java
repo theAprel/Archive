@@ -22,6 +22,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,7 +48,7 @@ public class DirectoryStructure {
     
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryStructure.class);
     
-    DirectoryStructure(DirectoryBean dir, ArchiveDatabase db) {
+    public DirectoryStructure(DirectoryBean dir, ArchiveDatabase db) {
         this.db = db;
         handle = db.getHandle();
         thisDir = dir;
@@ -73,6 +74,29 @@ public class DirectoryStructure {
 //            }
 //            beanPath.add(bean);
 //        }
+    }
+    
+    public DirectoryBean createDirectory(String name) {
+        if(name == null || name.equals(""))
+            throw new IllegalArgumentException("Illegal directory name");
+        final Set<String> filenames = new HashSet<>();
+        final List<List<FileBean>> beans = new ArrayList<>();
+        beans.add(files);
+        beans.add(newFiles);
+        beans.forEach((l) -> {
+            filenames.addAll(l.parallelStream().map(FileBean::getFilename)
+                    .collect(Collectors.toSet()));
+        });
+        filenames.addAll(directories.parallelStream()
+                .map(DirectoryBean::getDirName).collect(Collectors.toSet()));
+        if(filenames.contains(name))
+            throw new IllegalArgumentException(name + " already exists in this directory");
+        DirectoryBean newDir = new DirectoryBean();
+        newDir.setDirName(name);
+        newDir.setParent(thisDir);
+        newDir.create(db);
+        directories.add(newDir);
+        return newDir;
     }
     
     static String sanitizePath(String path) {
