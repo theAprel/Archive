@@ -108,13 +108,16 @@ public class DirectoryStructure {
         if(names.size() != files.size())
             throw new IllegalArgumentException(
                     "The provided collection contains files with the same name");
-        //any files with the same name in this directory?
-        names.retainAll(this.files.stream().map(FileBean::getFilename)
+        //any files or directories with the same name in this directory?
+        final int startSize = names.size();
+        names.removeAll(this.files.stream().map(FileBean::getFilename)
+                .collect(Collectors.toSet()));
+        names.removeAll(directories.stream().map(DirectoryBean::getDirName)
                 .collect(Collectors.toSet()));
         //names is now useless; do not use it past the following conditional:
-        if(!names.isEmpty())
+        if(names.size() != startSize)
             throw new IllegalArgumentException(
-                    "Duplicate names with files in directory " + thisDir + ": " + names);
+                    "Duplicate names with files in directory " + thisDir);
         //all tests are done; now queue the files to be added
         newFiles.addAll(files);
     }
