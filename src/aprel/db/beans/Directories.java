@@ -66,13 +66,13 @@ public class Directories {
             for(String s : pathParts) {
                 if(s.length() == 0) {
                     String msg = "Path contains zero-length directories.";
-                    LOG.error(msg, path, pathParts);
+                    LOG.error(msg + " {} {}", path, pathParts);
                     throw new IllegalArgumentException(msg);
                 }
                 DirectoryBean nextDir = DirectoryStructure.getDir(s, basePath.getLast().getId(), db);
                 if(nextDir == null) {
                     String msg = "Base path contains a directory not in the archive: " + s;
-                    LOG.error(msg, path, pathParts);
+                    LOG.error(msg + " {} {}", path, pathParts);
                     throw new IllegalArgumentException(msg);
                 }
                 basePath.add(nextDir);
@@ -163,7 +163,7 @@ public class Directories {
         //and care was taking in the addFiles method
         newDirs.forEach(d -> {
             d.create(db);
-            LOG.info("Created directory:", d);
+            LOG.info("Created directory: {}", d);
         });
         structures.forEach(DirectoryStructure::commitToDatabase);
     }
@@ -211,7 +211,7 @@ public class Directories {
     }
     
     public List<String> getDirectoriesToBeCreated() {
-        newDirs.stream().forEach(d -> LOG.debug("To be created:" + d, d));
+        newDirs.stream().forEach(d -> LOG.debug("To be created: {}", d));
         return newDirs.stream().map(DirectoryBean::getDirName).collect(Collectors.toList());
     }
 }
