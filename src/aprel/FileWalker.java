@@ -222,7 +222,11 @@ public class FileWalker implements FileVisitor<Path> {
                             case SUBTITLE: media.setSubtitle(value); break;
                             case DESCRIPTION: media.setDescription(value); break;
                             case CHANNEL: media.setChannel(value); break;
-                            case ORIGINAL_BROADCAST_DATETIME: media.setOriginalBroadcast(value); break;
+                            case ORIGINAL_BROADCAST_DATETIME: 
+                                //convert into MySQL datetime
+                                value = value.replace("T", " ").replace("Z", "");
+                                media.setOriginalBroadcast(value);
+                                break;
                             case ORIGINAL_RUNTIME: media.setOriginalRuntime(value); break;
                             default: LOG.error("Misprocessed a WtvMetadata enum: " + corresponding); break;
                         }
