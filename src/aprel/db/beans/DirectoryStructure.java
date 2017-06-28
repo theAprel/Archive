@@ -137,10 +137,15 @@ public class DirectoryStructure {
         Insert ins = db.getInsertObject();
         newFiles.forEach(bean -> {
             bean.setDirParentId(thisDir.getId());
-            LOG.debug("Inserting " + bean, bean);
-            String id = ins.insertAllNoMetadata(bean);
-            LOG.debug("ID: " + id);
+            LOG.debug("Inserting {}", bean);
+            String id = ins.insertFile(bean);
+            LOG.debug("ID: {}", id);
             bean.setId(id);
+            if(bean.hasMediaData()) {
+                FileBean.MediaMetadata media = bean.getMedia();
+                LOG.debug("File has multimedia data. Inserting into db: {}", media);
+                ins.insertMetadata(id, media);
+            }
         });
     }
     

@@ -47,6 +47,10 @@ public interface Insert {
     @GetGeneratedKeys
     public String insertFile(@BindBean FileBean bean);
     
+    @SqlUpdate("INSERT INTO metadata (fileId, title, subtitle, description, channel, originalBroadcast, originalRuntime, duration100Nanos, duration) "
+            + "VALUES (:fileId, :title, :subtitle, :description, :channel, :originalBroadcast, :originalRuntime, :duration100Nanos, :duration)")
+    public void insertMetadata(@Bind("fileId") String fileId, @BindBean FileBean.MediaMetadata metadata);
+    
     @SqlUpdate("INSERT INTO directories (dirName) VALUES (:name)")
     public void createCatalog(@Bind("name") String name);
     
