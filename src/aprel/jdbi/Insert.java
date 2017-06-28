@@ -45,7 +45,7 @@ public interface Insert {
     @SqlUpdate("INSERT INTO files (filename, dirParentId, md5, size, onOptical, onLocalDisc, localStoragePath) "
             + "VALUES (:filename, :dirParentId, :md5, :size, :onOptical, :onLocalDisc, :localStoragePath)")
     @GetGeneratedKeys
-    public String insertAllNoMetadata(@BindBean FileBean bean);
+    public String insertFile(@BindBean FileBean bean);
     
     @SqlUpdate("INSERT INTO directories (dirName) VALUES (:name)")
     public void createCatalog(@Bind("name") String name);
