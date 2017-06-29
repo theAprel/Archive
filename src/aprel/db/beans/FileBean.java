@@ -50,8 +50,8 @@ public class FileBean {
     }
     
     public String getId() {
-//        if(!idHasBeenSet)
-//            throw new IllegalStateException("getId that has not been set");
+        if(!idHasBeenSet)
+            throw new IllegalStateException("getId that has not been set");
         return id;
     }
 
