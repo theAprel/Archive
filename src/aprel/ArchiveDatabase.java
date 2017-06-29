@@ -16,11 +16,14 @@
  */
 package aprel;
 
+import aprel.db.beans.DirectoryBean;
+import aprel.jdbi.Delete;
 import aprel.jdbi.Insert;
 import aprel.jdbi.Query;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -39,14 +42,16 @@ public class ArchiveDatabase {
     private final String user, pass, sqlServer, dbName;
     private final DBI dbi;
     private final Handle h;
-    private Query query;
-    private Insert insert;
+    private final Query query;
+    private final Insert insert;
+    private final Delete delete;
     
     private static final Logger LOG = LoggerFactory.getLogger(ArchiveDatabase.class);
     
     private static final String SQL_SERVER_URL_PREFIX = "jdbc:mysql://";
 
-    public ArchiveDatabase(String user, String pass, String server, String dbName) throws SQLException {
+    public ArchiveDatabase(String user, String pass, String server, String dbName, 
+            boolean canDelete) throws SQLException {
         this.user = user;
         this.pass = pass;
         sqlServer = server;
@@ -55,18 +60,32 @@ public class ArchiveDatabase {
                 (sqlServer.endsWith("/") ? "" : "/") + this.dbName,
                 this.user, this.pass);
         h = dbi.open();
+        query = h.attach(Query.class);
+        insert = h.attach(Insert.class);
+        delete = canDelete ? h.attach(Delete.class) : null;
     }
     
-    public Query getQueryObject() {
-        if(query == null)
-            query = h.attach(Query.class);
+    public ArchiveDatabase(String user, String pass, String server, String dbName) throws SQLException {
+        this(user, pass, server, dbName, false);
+    }
+    
+    public List<DirectoryBean> getCatalogs() {
+        return query.getCatalogs();
+    }
+    
+    public Query getQueryObject() {  
         return query;
     }
     
     public Insert getInsertObject() {
-        if(insert == null)
-            insert = h.attach(Insert.class);
         return insert;
+    }
+    
+    public Delete getDeleteObject() {
+        if(delete == null)
+            throw new IllegalStateException(ArchiveDatabase.class.getSimpleName() 
+                    + " initialized without delete permission");
+        return delete;
     }
     
     public Handle getHandle() {
@@ -79,6 +98,16 @@ public class ArchiveDatabase {
     
     public static ArchiveDatabase createDefaultDatabase() throws 
             ParserConfigurationException, SAXException, IOException, SQLException {
+        return createDatabaseImpl(false);
+    }
+    
+    public static ArchiveDatabase createDangerousDefaultDatabase() throws 
+            ParserConfigurationException, SAXException, IOException, SQLException {
+        return createDatabaseImpl(true);
+    }
+    
+    private static ArchiveDatabase createDatabaseImpl(boolean canDelete) throws 
+            ParserConfigurationException, SAXException, IOException, SQLException {
         InputStream credStream = ArchiveDatabase.class.getResourceAsStream(
                 "/aprel/db-credentials.xml");
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -88,6 +117,6 @@ public class ArchiveDatabase {
         String pass = doc.getElementsByTagName("password").item(0).getTextContent();
         String server = doc.getElementsByTagName("server").item(0).getTextContent();
         String db = doc.getElementsByTagName("database").item(0).getTextContent();
-        return new ArchiveDatabase(user, pass, server, db);
+        return new ArchiveDatabase(user, pass, server, db, canDelete);
     }
 }

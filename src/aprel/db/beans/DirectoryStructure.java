@@ -76,6 +76,12 @@ public class DirectoryStructure {
 //        }
     }
     
+    /**
+     * Creates a new directory. If a file already exists by the given name, 
+     * throws <code>IllegalArgumentException</code>.
+     * @param name
+     * @return 
+     */
     public DirectoryBean createDirectory(String name) {
         if(name == null || name.equals(""))
             throw new IllegalArgumentException("Illegal directory name");
@@ -97,6 +103,83 @@ public class DirectoryStructure {
         newDir.create(db);
         directories.add(newDir);
         return newDir;
+    }
+    
+    public List<DbFile> getFiles() {
+        if(!newFiles.isEmpty())
+            throw new IllegalStateException("Files waiting to be committed to database");
+        List<DbFile> fs = new ArrayList<>(files.size() + directories.size() + 1);
+        fs.addAll(files);
+        fs.addAll(directories);
+        return fs;
+    }
+    
+    public List<String> getNamesInDir() {
+        List<DbFile> files = getFiles();
+        return files.stream().map(DbFile::getName).collect(Collectors.toList());
+    }
+    
+    /**
+     * 
+     * @param name
+     * @return The <code>DirectoryBean</code> with the given name, or 
+     * <code>null</code>.
+     */
+    public DirectoryBean getInnerDirectoryByName(String name) {
+        return directories.parallelStream().filter(d -> d.getDirName()
+                .equals(name)).findAny().orElse(null);
+    }
+    
+    public List<DirectoryBean> getInnerDirectories() {
+        return new ArrayList<>(directories);
+    }
+    
+    public String getName() {
+        return thisDir.getDirName();
+    }
+    
+    /**
+     * Deletes this directory if and only if it is empty.
+     * 
+     * If this method returns {@code true}, any further use of this object is 
+     * undefined.
+     * @return Whether this was deleted.
+     */
+    private boolean delete() {
+        if(!isEmpty())
+            return false;
+        thisDir.delete(db);
+        return true;
+    }
+    
+    /**
+     * Deletes a child directory if and only if it is empty.
+     * 
+     * If this method returns {@code true}, any further use of this object is 
+     * undefined.
+     * @param name
+     * @return Whether this was deleted.
+     */
+    public boolean deleteChildDirectory(String name) {
+        DirectoryBean child = directories.parallelStream()
+                .filter(d -> d.getName().equals(name)).findAny().orElse(null);
+        if(child == null)
+            throw new IllegalArgumentException("No child directory by name " + name);
+        return deleteChildDirectory(child);
+    }
+    
+    public boolean deleteChildDirectory(DirectoryBean child) {
+        if(!directories.contains(child))
+            throw new IllegalArgumentException("No such child directory: " + child);
+        DirectoryStructure ds = new DirectoryStructure(child, db);
+        boolean deleted = ds.delete();
+        if(deleted)
+            directories.remove(child);
+        return deleted;
+    }
+    
+    public boolean isEmpty() {
+        return files.isEmpty() && directories.isEmpty() && newFiles.isEmpty();
     }
     
     static String sanitizePath(String path) {

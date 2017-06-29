@@ -33,6 +33,15 @@ public class DirectoryBean implements DbFile {
         return idHasBeenSet;
     }
     
+    /**
+     * Trusts that external code has verified that this directory is empty. If 
+     * this directory is not empty, calling this method will corrupt the 
+     * database.
+     */
+    void delete(ArchiveDatabase db) {
+        db.getDeleteObject().deleteDir(this);
+    }
+    
     @Override
     public String getId() {
         if(!idHasBeenSet)

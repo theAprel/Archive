@@ -16,6 +16,7 @@
  */
 package aprel.db.beans;
 
+import aprel.ArchiveDatabase;
 import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
