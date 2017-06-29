@@ -18,12 +18,13 @@ package aprel.db.beans;
 
 import aprel.ArchiveDatabase;
 import java.util.Objects;
+import javax.xml.bind.annotation.XmlTransient;
 
 /**
  *
  * @author Aprel
  */
-public class DirectoryBean {
+public class DirectoryBean implements DbFile {
     private String id, dirName, dirParentId;
     private DirectoryBean parent;
     private boolean idHasBeenSet = false;
@@ -32,6 +33,7 @@ public class DirectoryBean {
         return idHasBeenSet;
     }
     
+    @Override
     public String getId() {
         if(!idHasBeenSet)
             throw new IllegalStateException("getId that has not been set");
@@ -49,6 +51,12 @@ public class DirectoryBean {
 
     public void setDirName(String dirName) {
         this.dirName = dirName;
+    }
+    
+    @XmlTransient
+    @Override
+    public String getName() {
+        return getDirName();
     }
 
     public String getDirParentId() {

@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 @XmlRootElement( name = "FILE" )
 @XmlType(propOrder = {"size", "md5", "media"} )
-public class FileBean {
+public class FileBean implements DbFile {
     /*
     (Serial) id | filename | dirParentId | md5 | size
     | BOOL onOptical | BOOL onLocalDisc | localStoragePath
@@ -49,6 +49,7 @@ public class FileBean {
         return idHasBeenSet;
     }
     
+    @Override
     public String getId() {
         if(!idHasBeenSet)
             throw new IllegalStateException("getId that has not been set");
@@ -73,6 +74,12 @@ public class FileBean {
     @XmlTransient
     public void setFilename(String filename) {
         this.filename = filename;
+    }
+    
+    @XmlTransient
+    @Override
+    public String getName() {
+        return getFilename();
     }
 
     public String getPath() {
