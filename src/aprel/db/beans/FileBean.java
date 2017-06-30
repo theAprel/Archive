@@ -50,10 +50,15 @@ public class FileBean implements DbFile {
         return idHasBeenSet;
     }
     
+    /**
+     * 
+     * @return the id in database, or {@code null} if not in database.
+     */
     @Override
     public String getId() {
-        if(!idHasBeenSet)
-            throw new IllegalStateException("getId that has not been set");
+        //it would be nice to have this check, but we can't b/c of JavaBeans
+//        if(!idHasBeenSet)
+//            throw new IllegalStateException("getId that has not been set");
         return id;
     }
 
