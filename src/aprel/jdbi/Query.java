@@ -61,4 +61,8 @@ public interface Query {
     @SqlQuery("SELECT * FROM files WHERE dirParentId= :id")
     @Mapper(FileBeanMapper.class)
     public List<FileBean> getAllFilesInDirectoryBesidesOtherDirectories(@Bind("id") String directoryId);
+    
+    @SqlQuery("SELECT * FROM files WHERE md5= :md5")
+    @Mapper(FileBeanMapper.class)
+    public FileBean getByMd5(@Bind("md5") String md5sum);
 }

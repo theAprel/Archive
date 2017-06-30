@@ -18,11 +18,12 @@ package aprel;
 
 import aprel.db.beans.CatalogDoesNotExistException;
 import aprel.db.beans.Directories;
-import aprel.db.beans.DirectoryStructure;
 import aprel.db.beans.FileBean;
 import aprel.db.beans.FilesRootContainer;
 import java.io.File;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 import org.apache.commons.cli.CommandLine;
@@ -62,6 +63,7 @@ public class Inserter {
     Things that must be checked prior to insertion into database:
     -that no file to be inserted has the same md5 as another or a file in the db
     -that no file has the same name as another with the same directory parent in the db
+    ^--Handled in Directories/DirectoryStructure
     */
     
     public static void main(String[] args) throws Exception {
@@ -107,7 +109,26 @@ public class Inserter {
                 });
         
         ArchiveDatabase db = ArchiveDatabase.createDefaultDatabase();
-        //ins.insertAllNoMetadata(l.iterator());
+        //check for md5sum duplicates
+        final Set<FileBean> md5Duplicates = new HashSet<>();
+        LOG.debug("Begin checking for MD5 duplicates...");
+        l.forEach(b -> {
+            FileBean databaseDuplicate = db.getQueryObject().getByMd5(b.getMd5());
+            if(databaseDuplicate != null) {
+                LOG.info("Found duplicate: {}", databaseDuplicate);
+                md5Duplicates.add(databaseDuplicate);
+            }
+        });
+        if(!md5Duplicates.isEmpty()) {
+            System.out.println("There are files with the same MD5 in the database");
+            md5Duplicates.forEach(b -> {
+                System.out.println(b.getDirParentId() + "/" + b.getName());
+            });
+            System.out.println("Total # of duplicates: " + md5Duplicates.size());
+            db.close();
+            System.exit(0);
+        }
+        LOG.debug("Completed MD5 duplicate check.");
         Directories directories;
         try {
             directories = new Directories(catalog, archivePath, db);
