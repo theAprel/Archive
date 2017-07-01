@@ -50,6 +50,10 @@ public class Optical {
     public long getAvailableSpace() {
         return spaceRemaining;
     }
+    
+    public List<Part> getParts() {
+        return new ArrayList<>(parts);
+    }
 
     @Override
     public String toString() {

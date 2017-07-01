@@ -30,7 +30,7 @@ public class Part {
     */
     private String id, partFilename, parentFileId, md5, catalog, localStoragePath;
     private boolean onOptical, md5Verified;
-    private int discNumber;
+    private int ordinal, totalInSet, discNumber;
     private final FileBean parent;
     private long offset = 0L;
     private long size = 0L;
@@ -61,14 +61,31 @@ public class Part {
         this.size = size;
     }
 
+    public int getOrdinal() {
+        return ordinal;
+    }
+
+    public void setOrdinal(int ordinal) {
+        this.ordinal = ordinal;
+    }
+
+    public int getTotalInSet() {
+        return totalInSet;
+    }
+
+    public void setTotalInSet(int totalInSet) {
+        this.totalInSet = totalInSet;
+    }
+
     @Override
     public String toString() {
         return "Part{" + "id=" + id + ", partFilename=" + partFilename + 
                 ", parentFileId=" + parentFileId + ", md5=" + md5 + ", catalog=" 
-                + catalog + ", localStoragePath=" + localStoragePath + ", onOptical=" 
-                + onOptical + ", md5Verified=" + md5Verified + ", discNumber=" 
-                + discNumber + ", parent=" + parent + ", offset=" + offset 
-                + ", size=" + size + '}';
+                + catalog + ", localStoragePath=" + localStoragePath + 
+                ", onOptical=" + onOptical + ", md5Verified=" + md5Verified + 
+                ", ordinal=" + ordinal + ", totalInSet=" + totalInSet + 
+                ", discNumber=" + discNumber + ", parent=" + parent + ", offset=" 
+                + offset + ", size=" + size + '}';
     }
     
 }

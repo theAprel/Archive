@@ -18,7 +18,11 @@ package aprel.optical;
 
 import aprel.ArchiveDatabase;
 import aprel.db.beans.FileBean;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -30,7 +34,28 @@ public class Isoifier {
         final List<FileBean> notOnOptical = db.getQueryObject().getAllFilesNotOnOptical();
         Packer packer = new SimplePacker();
         List<Optical> opticals = packer.packFilesIntoOpticals(notOnOptical);
-        System.out.println(opticals);
+        //set properties ordinal and totalInSet
+        final Map<FileBean,List<Part>> fileToParts = new HashMap<>();
+        opticals.forEach(op -> {
+            op.getParts().forEach(p -> {
+                FileBean file = p.getParent();
+                if(!fileToParts.containsKey(file))
+                    fileToParts.put(file, new ArrayList<>());
+                fileToParts.get(file).add(p);
+            });
+        });
+        fileToParts.forEach((file, parts) -> {
+            final int length = parts.size();
+            for(int i = 1; i <= length; i++) {
+                Part p = parts.get(i-1);
+                p.setOrdinal(i);
+                p.setTotalInSet(length);
+            }
+        });
+        
+        List<Part> multipart = fileToParts.values().stream().flatMap(List::stream)
+                .filter(p -> p.getTotalInSet() > 1).collect(Collectors.toList());
+        System.out.println(multipart);
         
         db.close();
     }

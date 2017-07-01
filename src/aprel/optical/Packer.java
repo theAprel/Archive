@@ -26,6 +26,10 @@ import java.util.List;
  * parts into Opticals. Each implementation can choose how best to accomplish 
  * this. In addition, implementations may choose not to pack certain files.
  * 
+ * Packers must set the parent, size, and offset of the Parts they create, but 
+ * the do not have to set the "ordinal" and "totalInSet" properties, which must 
+ * be set externally.
+ * 
  * @author Aprel
  */
 public interface Packer {
