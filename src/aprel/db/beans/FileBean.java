@@ -16,7 +16,6 @@
  */
 package aprel.db.beans;
 
-import aprel.ArchiveDatabase;
 import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -34,10 +33,10 @@ import org.slf4j.LoggerFactory;
 @XmlType(propOrder = {"size", "md5", "media"} )
 public class FileBean implements DbFile {
     /*
-    (Serial) id | filename | dirParentId | md5 | size
+    (Serial) id | filename | dirParentId | md5 | size | catalog
     | BOOL onOptical | BOOL onLocalDisc | localStoragePath
     */
-    private String id, path, filename, dirParentId, md5, localStoragePath;
+    private String id, path, filename, dirParentId, md5, catalog, localStoragePath;
     private long size;
     private boolean onOptical, onLocalDisc;
     private MediaMetadata media;
@@ -125,6 +124,15 @@ public class FileBean implements DbFile {
     @XmlElement( name = "MD5", required = true )
     public void setMd5(String md5) {
         this.md5 = md5;
+    }
+    
+    public String getCatalog() {
+        return catalog;
+    }
+    
+    @XmlTransient
+    public void setCatalog(String catalog) {
+        this.catalog = catalog;
     }
 
     public String getLocalStoragePath() {

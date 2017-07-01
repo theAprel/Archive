@@ -106,7 +106,8 @@ public class Inserter {
         l.stream().forEach(bean ->  {
             bean.setOnOptical(false);
             bean.setOnLocalDisc(true);
-                });
+            bean.setCatalog(catalog);
+        });
         
         ArchiveDatabase db = ArchiveDatabase.createDefaultDatabase();
         //check for md5sum duplicates

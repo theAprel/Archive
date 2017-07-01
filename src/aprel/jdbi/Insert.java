@@ -37,13 +37,13 @@ public interface Insert {
      * @return 
      */
     @Deprecated
-    @SqlBatch("INSERT INTO files (filename, dirParentId, md5, size, onOptical, onLocalDisc, localStoragePath) "
-            + "VALUES (:filename, :dirParentId, :md5, :size, :onOptical, :onLocalDisc, :localStoragePath)")
+    @SqlBatch("INSERT INTO files (filename, dirParentId, md5, size, catalog, onOptical, onLocalDisc, localStoragePath) "
+            + "VALUES (:filename, :dirParentId, :md5, :size, :catalog, :onOptical, :onLocalDisc, :localStoragePath)")
     @GetGeneratedKeys
     public int[] insertAllNoMetadata(@BindBean Iterator<FileBean> beans);
     
-    @SqlUpdate("INSERT INTO files (filename, dirParentId, md5, size, onOptical, onLocalDisc, localStoragePath) "
-            + "VALUES (:filename, :dirParentId, :md5, :size, :onOptical, :onLocalDisc, :localStoragePath)")
+    @SqlUpdate("INSERT INTO files (filename, dirParentId, md5, size, catalog, onOptical, onLocalDisc, localStoragePath) "
+            + "VALUES (:filename, :dirParentId, :md5, :size, :catalog, :onOptical, :onLocalDisc, :localStoragePath)")
     @GetGeneratedKeys
     public String insertFile(@BindBean FileBean bean);
     

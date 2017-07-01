@@ -1,6 +1,6 @@
 Table: files
 
-(Serial) id | filename | dirParentId | md5 | size | BOOL onOptical | BOOL onLocalDisc | localStoragePath (tmp until written to optical, or has been retrieved)
+(Serial) id | filename | dirParentId | md5 | size | catalog | BOOL onOptical | BOOL onLocalDisc | localStoragePath (tmp until written to optical, or has been retrieved)
 
 
 Table: directories
