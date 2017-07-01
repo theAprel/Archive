@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
  * @author Aprel
  */
 public class Isoifier {
+    
+    public static final String FILENAME_ORDINAL_SEPARATOR = "-";
+    
     public static void main(String[] args) throws Exception {
         ArchiveDatabase db = ArchiveDatabase.createDefaultDatabase();
         final List<FileBean> notOnOptical = db.getQueryObject().getAllFilesNotOnOptical();
@@ -41,15 +44,28 @@ public class Isoifier {
                 FileBean file = p.getParent();
                 if(!fileToParts.containsKey(file))
                     fileToParts.put(file, new ArrayList<>());
+                //set catalog here
+                p.setCatalog(file.getCatalog());
                 fileToParts.get(file).add(p);
             });
         });
         fileToParts.forEach((file, parts) -> {
             final int length = parts.size();
-            for(int i = 1; i <= length; i++) {
-                Part p = parts.get(i-1);
-                p.setOrdinal(i);
-                p.setTotalInSet(length);
+            if(length == 1) {
+                // this is where all singleton parts (unsplit files) have their props set 
+                final Part singleton = parts.get(0);
+                singleton.setMd5(file.getMd5());
+                singleton.setPartFilename(file.getFilename());
+                singleton.setOrdinal(1);
+                singleton.setTotalInSet(1);
+            }
+            else {
+                for(int i = 1; i <= length; i++) {
+                    Part p = parts.get(i-1);
+                    p.setOrdinal(i);
+                    p.setTotalInSet(length);
+                    p.setPartFilename(file.getFilename() + FILENAME_ORDINAL_SEPARATOR + i);
+                }
             }
         });
         
