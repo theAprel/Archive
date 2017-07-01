@@ -65,4 +65,8 @@ public interface Query {
     @SqlQuery("SELECT * FROM files WHERE md5= :md5")
     @Mapper(FileBeanMapper.class)
     public FileBean getByMd5(@Bind("md5") String md5sum);
+    
+    @SqlQuery("SELECT * FROM files WHERE NOT onOptical")
+    @Mapper(FileBeanMapper.class)
+    public List<FileBean> getAllFilesNotOnOptical();
 }
