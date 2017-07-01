@@ -16,8 +16,20 @@
  */
 package aprel.optical;
 
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
+import com.google.common.hash.HashingInputStream;
+import com.google.common.hash.HashingOutputStream;
+import com.google.common.io.ByteSink;
+import com.google.common.io.ByteSource;
+import com.google.common.io.Files;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -53,6 +65,26 @@ public class Optical {
     
     public List<Part> getParts() {
         return new ArrayList<>(parts);
+    }
+    
+    public void writePartsToDir(String dir) throws IOException {
+        if(!new File(dir).isDirectory())
+            throw new IllegalArgumentException("Not a directory: " + dir);
+        dir += dir.endsWith("/") ? "" : "/";
+        @SuppressWarnings("deprecation")
+        final HashFunction md5 = Hashing.md5();
+        for(Part p : parts) {
+            final ByteSource offsetView = Files.asByteSource(new File(p.getParent()
+                    .getLocalStoragePath())).slice(p.getOffset(), p.getSize());
+            final HashingInputStream hashFromStream = new HashingInputStream(md5, offsetView.openStream());
+            final ByteSink outSink = Files.asByteSink(new File(dir + p.getPartFilename()));
+            final long written = outSink.writeFrom(hashFromStream);
+            if(written != p.getSize())
+                throw new IOException("Did not write all bytes from source to destination: "
+                        + "Wrote " + written + " bytes out of " + p.getSize());
+            p.setMd5(hashFromStream.hash().toString());
+            hashFromStream.close();
+        }
     }
 
     @Override
