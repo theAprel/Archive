@@ -119,7 +119,7 @@ public class DirectoryBean implements DbFile {
         }
         final DirectoryBean other = (DirectoryBean) obj;
         if(this.id == null || other.id == null)
-            throw new IllegalStateException("Comparing an instance with uninitializwed ID");
+            throw new IllegalStateException("Comparing an instance with uninitialized ID");
         return Objects.equals(this.id, other.id);
     }
 
