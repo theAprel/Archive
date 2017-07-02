@@ -30,7 +30,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement( name = "parts")
 public class PartsRootContainer {
-    @XmlElement(type = Part.class)
+    @XmlElement(name = "part", type = Part.class)
     private List<Part> parts;
 
     public PartsRootContainer() {
