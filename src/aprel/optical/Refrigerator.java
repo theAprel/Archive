@@ -28,24 +28,24 @@ import javax.xml.bind.annotation.XmlRootElement;
  * @author Aprel
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement( name = "parts")
-public class PartsRootContainer {
-    @XmlElement(name = "part", type = Part.class)
-    private List<Part> parts;
+@XmlRootElement( name = "refrigerator" )
+public class Refrigerator {
+    @XmlElement(name = "leftover", type = Leftover.class)
+    private List<Leftover> leftovers;
 
-    public PartsRootContainer() {
-        parts = new ArrayList<>();
+    public Refrigerator() {
+        leftovers = new ArrayList<>();
     }
     
-    public PartsRootContainer(List<Part> parts) {
-        this.parts = parts;
+    public Refrigerator(List<Leftover> leftovers) {
+        this.leftovers = leftovers;
     }
 
-    public List<Part> getParts() {
-        return parts;
+    public List<Leftover> getParts() {
+        return leftovers;
     }
 
-    public void setParts(List<Part> parts) {
-        this.parts = parts;
+    public void setParts(List<Leftover> leftovers) {
+        this.leftovers = leftovers;
     }
 }

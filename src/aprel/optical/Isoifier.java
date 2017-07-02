@@ -136,7 +136,7 @@ public class Isoifier {
             return;
         }
         
-        final JAXBContext jaxbContext = JAXBContext.newInstance(PartsRootContainer.class);
+        final JAXBContext jaxbContext = JAXBContext.newInstance(Refrigerator.class);
         
         Path temporaryDirectory;
         if(cmd.hasOption(OPTION_TEMP_DIRECTORY)) {
@@ -281,7 +281,8 @@ public class Isoifier {
         new File(leftoverXmlFile).delete();
         if(leftoverOptical != null) {
             Marshaller marsh = jaxbContext.createMarshaller();
-            JAXBSource jsource = new JAXBSource(marsh, new PartsRootContainer(leftoverOptical.getParts()));
+            JAXBSource jsource = new JAXBSource(marsh, new Refrigerator(
+                    Leftover.createLeftovers(leftoverOptical.getParts())));
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
