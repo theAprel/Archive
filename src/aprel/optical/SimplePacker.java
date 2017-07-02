@@ -37,12 +37,15 @@ public class SimplePacker implements Packer {
 
     @Override
     public List<Optical> packFilesIntoOpticals(final Collection<FileBean> files, 
-            final int maxOpticals) {
+            final int maxOpticals, List<Optical> startingSet) {
+        if(startingSet.size() >= maxOpticals)
+            throw new IllegalArgumentException("startingSet.size() > maxOpticals: "
+                    + startingSet.size() + " > " + maxOpticals);
         Multimap<String,FileBean> parentIdToFiles = HashMultimap.create();
         files.forEach(f -> {
             parentIdToFiles.put(f.getDirParentId(), f);
         });
-        OpticalSet opticals = new OpticalSet();
+        OpticalSet opticals = new OpticalSet(startingSet);
         iter:
         for(Map.Entry<String,Collection<FileBean>> entry : parentIdToFiles.asMap()
                 .entrySet()) {

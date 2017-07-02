@@ -33,6 +33,24 @@ public class OpticalSet {
         currentDisc = createNewOptical();
     }
     
+    public OpticalSet(List<Optical> startingOpticals) {
+        if(startingOpticals.isEmpty())
+            throw new IllegalArgumentException("startingOpticals cannot be empty."
+                    + " Use nullary constructor.");
+        if(startingOpticals.isEmpty()) {
+            opticals = new ArrayList<>();
+            currentDisc = createNewOptical();
+        }
+        else {
+            Optical lastDisc = startingOpticals.get(startingOpticals.size()-1);
+            opticals = new ArrayList<>(startingOpticals);
+            if(lastDisc.getAvailableSpace() > 0)
+                currentDisc = lastDisc;
+            else
+                createNewOptical();
+        }
+    }
+    
     private Optical createNewOptical() {
         Optical o = new Optical();
         opticals.add(o);

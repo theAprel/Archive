@@ -43,7 +43,14 @@ public interface Packer {
      * it may not be feasible to maintain this maximum with efficient packing, so 
      * implementations should try their best to approximate this value, but it is 
      * not a hard requirement.
+     * @param startingSet Opticals to include at the beginning of the returned 
+     * list. If the last Optical in the list is not full, adds more file parts 
+     * to that Optical. Can be an empty list, but not {@code null}. If 
+     * {{@code startingSet.size()} {@literal >= maxOpticals}}, throws
+     * {@code IllegalArgumentExpection}.
+     * 
      * @return 
      */
-    public List<Optical> packFilesIntoOpticals(Collection<FileBean> files, int maxOpticals);
+    public List<Optical> packFilesIntoOpticals(Collection<FileBean> files, 
+            int maxOpticals, List<Optical> startingSet);
 }
