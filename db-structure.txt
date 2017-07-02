@@ -2,6 +2,8 @@ Table: files
 
 (Serial) id | filename | dirParentId | md5 | size | catalog | BOOL onOptical | BOOL onLocalDisc | localStoragePath (tmp until written to optical, or has been retrieved)
 
+Note: files.onOptical == true is NOT sufficient to assume that the file is backed up. This value just tells the Archive that the file's parts are delegated to be written to optical. A file can be deleted from local storage only when there is a filepart at each ordinal for totalInSet with parentFileId == (this file) id.
+
 
 Table: directories
 (catalogs are implemented as directories with NULL dirParentId)

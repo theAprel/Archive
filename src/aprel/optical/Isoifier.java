@@ -22,7 +22,6 @@ import aprel.jdbi.Insert;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -31,8 +30,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 import javax.xml.bind.JAXBContext;
@@ -259,6 +260,7 @@ public class Isoifier {
         final BufferedWriter md5FileWriter = new BufferedWriter(new OutputStreamWriter(
                 new GZIPOutputStream(new FileOutputStream(
                         temporaryBasePath + CHECKSUMS_FILENAME)),Charset.forName("utf-8")));
+        final Set<FileBean> filesAddedToOptical = new HashSet<>();
         for(Optical opt : opticals) {
             if(opt instanceof PrivilegedOptical)
                 ((PrivilegedOptical)opt).becomeNormal(); //now is the time!
@@ -292,6 +294,7 @@ public class Isoifier {
                                 + p.getOrdinal() + FILENAME_ORDINAL_SEPARATOR 
                                 + p.getTotalInSet()));
                 p.setPartFilename(newFilename);
+                filesAddedToOptical.add(p.getParent());
                 md5FileWriter.write(p.getMd5() + "  " + p.getPartFilename());
                 md5FileWriter.newLine();
             }
@@ -305,6 +308,7 @@ public class Isoifier {
             Process p = pb.start();
             p.waitFor();
             System.out.println("Successfully saved to " + udfFilename + ".iso");
+            ins.updateFilesOnOptical(filesAddedToOptical.iterator());
             Arrays.asList(temporaryDirectory.toFile().listFiles()).forEach(f -> f.delete());
             
             discNumber++;

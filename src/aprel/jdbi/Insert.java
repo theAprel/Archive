@@ -68,4 +68,7 @@ public interface Insert {
             + "VALUES (:partFilename, :parentFileId, :ordinal, :totalInSet, :md5, :size, :onOptical, :md5Verified, :catalog, :discNumber, :localStoragePath)")
     @GetGeneratedKeys
     public String insertPart(@BindBean Part p);
+    
+    @SqlBatch("UPDATE files SET onOptical=1 WHERE id= :id")
+    public void updateFilesOnOptical(@BindBean Iterator<FileBean> files);
 }
