@@ -19,7 +19,9 @@ package aprel.optical;
 import aprel.ArchiveDatabase;
 import aprel.db.beans.FileBean;
 import aprel.jdbi.Insert;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,6 +52,7 @@ import org.apache.commons.cli.ParseException;
 public class Isoifier {
     
     public static final String FILENAME_ORDINAL_SEPARATOR = "-";
+    public static final String CHECKSUMS_FILENAME = "java-archive-generated-3bc62bbb2cf99142-checksums.md5";
     private static final String TEMPORARY_DIR_PREFIX = "java-archive-udf";
     
     private static final String OPTION_TEMP_DIRECTORY = "t";
@@ -224,6 +227,8 @@ public class Isoifier {
         }
         final Optical leftover = opticals.get(opticals.size()-1)
                 .getAvailableSpace() != 0 ? opticals.remove(opticals.size()-1) : null;
+        final BufferedWriter md5FileWriter = new BufferedWriter(new FileWriter(
+                temporaryBasePath + CHECKSUMS_FILENAME));
         for(Optical opt : opticals) {
             opt.writePartsToDir(partsDir);
             //at this point, parts should have all their database fields set
@@ -246,14 +251,19 @@ public class Isoifier {
                 //end "clever" hack
                 p.setId(id);
                 //now that parts have db ids, rename them to conform to "id-filename-ordinal"
+                String newFilename;
                 com.google.common.io.Files.move(
                         new File(temporaryBasePath + p.getPartFilename()),
-                        new File(temporaryBasePath + p.getId() + FILENAME_ORDINAL_SEPARATOR 
+                        new File(newFilename = temporaryBasePath + p.getId() + FILENAME_ORDINAL_SEPARATOR 
        /*strip temp uniqid-->*/ + p.getPartFilename().split(FILENAME_ORDINAL_SEPARATOR,2)[1] 
                                 + FILENAME_ORDINAL_SEPARATOR 
                                 + p.getOrdinal() + FILENAME_ORDINAL_SEPARATOR 
                                 + p.getTotalInSet()));
+                p.setPartFilename(newFilename);
+                md5FileWriter.write(p.getMd5() + "  " + p.getPartFilename());
+                md5FileWriter.newLine();
             }
+            md5FileWriter.close();
             //now, package the contents of the temp directory to a udf image, then clear the temp files
             final String udfFilename = catalog + FILENAME_ORDINAL_SEPARATOR + discNumber;
             ProcessBuilder pb = new ProcessBuilder("mkisofs", "-R", "-J", "-udf", 
