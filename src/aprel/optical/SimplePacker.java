@@ -45,7 +45,8 @@ public class SimplePacker implements Packer {
         files.forEach(f -> {
             parentIdToFiles.put(f.getDirParentId(), f);
         });
-        OpticalSet opticals = new OpticalSet(startingSet);
+        OpticalSet opticals = startingSet.isEmpty() ? new OpticalSet() 
+                : new OpticalSet(startingSet);
         iter:
         for(Map.Entry<String,Collection<FileBean>> entry : parentIdToFiles.asMap()
                 .entrySet()) {
