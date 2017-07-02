@@ -238,7 +238,12 @@ public class Isoifier {
                 p.setOnOptical(true);
                 p.setMd5Verified(false);
                 p.setDiscNumber(discNumber);
+                //"clever" hack
+                final String holdFilename = p.getPartFilename();
+                p.setPartFilename(holdFilename.split(FILENAME_ORDINAL_SEPARATOR,2)[1]);
                 final String id = ins.insertPart(p);
+                p.setPartFilename(holdFilename);
+                //end "clever" hack
                 p.setId(id);
                 //now that parts have db ids, rename them to conform to "id-filename-ordinal"
                 com.google.common.io.Files.move(
