@@ -34,8 +34,8 @@ import java.util.List;
  * @author Aprel
  */
 public class Optical {
-    private final List<Part> parts;
-    private long spaceRemaining;
+    protected final List<Part> parts;
+    protected long spaceRemaining;
     
     public static final long MAX_BYTES = 25L * 1000L * 1000L * 1000L; //Bluray
     public static final int OVERHEAD = 2 * 1000 * 1000;
