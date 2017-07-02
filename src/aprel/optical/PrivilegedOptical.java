@@ -16,6 +16,8 @@
  */
 package aprel.optical;
 
+import java.util.Collection;
+
 /**
  *
  * A PrivilegedOptical hides a Part until {@code becomeNormal} is called. This 
@@ -26,23 +28,23 @@ package aprel.optical;
  */
 public class PrivilegedOptical extends Optical {
     
-    private final Part hiddenPart;
+    private final Collection<Part> hiddenParts;
     private boolean isNormal = false;
     
-    public PrivilegedOptical(Part toHide) {
+    public PrivilegedOptical(Collection<Part> toHide) {
         super();
-        final long partSize = toHide.getSize();
-        if(partSize > spaceRemaining)
-            throw new IllegalArgumentException("Part size exceeds available "
-                    + "optical space: " + partSize + " > " + spaceRemaining);
-        hiddenPart = toHide;
-        spaceRemaining -= partSize;
+        final long colSize = toHide.stream().mapToLong(Part::getSize).sum();
+        if(colSize > spaceRemaining)
+            throw new IllegalArgumentException("Part collection size exceeds "
+                    + "available optical space: " + colSize + " > " + spaceRemaining);
+        hiddenParts = toHide;
+        spaceRemaining -= colSize;
     }
     
     public void becomeNormal() {
         if(isNormal)
             throw new IllegalStateException("Already normal");
-        parts.add(0, hiddenPart);
+        parts.addAll(0, hiddenParts);
         
         isNormal = true;
     }
