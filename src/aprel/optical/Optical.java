@@ -19,16 +19,12 @@ package aprel.optical;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.google.common.hash.HashingInputStream;
-import com.google.common.hash.HashingOutputStream;
 import com.google.common.io.ByteSink;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,7 +38,7 @@ public class Optical {
     private long spaceRemaining;
     
     public static final long MAX_BYTES = 25L * 1000L * 1000L * 1000L; //Bluray
-    public static final int OVERHEAD = 5 * 1000 * 1000; // 5MB to be on the safe side
+    public static final int OVERHEAD = 2 * 1000 * 1000;
     public static final long PAYLOAD_SPACE = MAX_BYTES - OVERHEAD;
     @SuppressWarnings("deprecation")
     private static final HashFunction MD5 = Hashing.md5();
