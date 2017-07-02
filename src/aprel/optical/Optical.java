@@ -44,6 +44,8 @@ public class Optical {
     public static final long MAX_BYTES = 25L * 1000L * 1000L * 1000L; //Bluray
     public static final int OVERHEAD = 5 * 1000 * 1000; // 5MB to be on the safe side
     public static final long PAYLOAD_SPACE = MAX_BYTES - OVERHEAD;
+    @SuppressWarnings("deprecation")
+    private static final HashFunction MD5 = Hashing.md5();
     
     public Optical() {
         parts = new ArrayList<>();
@@ -71,19 +73,23 @@ public class Optical {
         if(!new File(dir).isDirectory())
             throw new IllegalArgumentException("Not a directory: " + dir);
         dir += dir.endsWith("/") ? "" : "/";
-        @SuppressWarnings("deprecation")
-        final HashFunction md5 = Hashing.md5();
+        
         for(Part p : parts) {
             final ByteSource offsetView = Files.asByteSource(new File(p.getParent()
                     .getLocalStoragePath())).slice(p.getOffset(), p.getSize());
-            final HashingInputStream hashFromStream = new HashingInputStream(md5, offsetView.openStream());
+            InputStream fromStream;
+            if(p.getMd5() == null)
+                fromStream = new HashingInputStream(MD5, offsetView.openStream());
+            else
+                fromStream = offsetView.openStream();
             final ByteSink outSink = Files.asByteSink(new File(dir + p.getPartFilename()));
-            final long written = outSink.writeFrom(hashFromStream);
+            final long written = outSink.writeFrom(fromStream);
             if(written != p.getSize())
                 throw new IOException("Did not write all bytes from source to destination: "
                         + "Wrote " + written + " bytes out of " + p.getSize());
-            p.setMd5(hashFromStream.hash().toString());
-            hashFromStream.close();
+            if(p.getMd5() == null)
+                p.setMd5(((HashingInputStream)fromStream).hash().toString());
+            fromStream.close();
         }
     }
 
