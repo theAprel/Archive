@@ -293,10 +293,11 @@ public class Isoifier {
                                 + FILENAME_ORDINAL_SEPARATOR 
                                 + p.getOrdinal() + FILENAME_ORDINAL_SEPARATOR 
                                 + p.getTotalInSet()));
-                p.setPartFilename(newFilename);
-                filesAddedToOptical.add(p.getParent());
+                //write md5 checksums before changing filename to full path
                 md5FileWriter.write(p.getMd5() + "  " + p.getPartFilename());
                 md5FileWriter.newLine();
+                p.setPartFilename(newFilename);
+                filesAddedToOptical.add(p.getParent());
             }
             md5FileWriter.close();
             //now, package the contents of the temp directory to a udf image, then clear the temp files
