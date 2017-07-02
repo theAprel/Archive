@@ -156,17 +156,9 @@ public class Isoifier {
         final List<Part> leftoverParts = leftoverList.stream().map(Leftover::getPart)
                 .collect(Collectors.toList());
         final List<Optical> startingOpticals = new ArrayList<>();
-        for(int i=0, n=leftoverParts.size(); i < n; i++) {
-            Part p = leftoverParts.get(i);
-            PrivilegedOptical privOpt = new PrivilegedOptical(p);
-            if(privOpt.getAvailableSpace() > 0) {
-                if(i != n-1) {
-                    System.err.println("Leftovers have multiple <" + 
-                            Optical.PAYLOAD_SPACE + "byte files. Exit.");
-                    System.exit(1);
-                    return;
-                }
-            }
+        //it doesn't make sense to have leftovers in excess of a single optical
+        if(!leftoverParts.isEmpty()) {
+            PrivilegedOptical privOpt = new PrivilegedOptical(leftoverParts);
             startingOpticals.add(privOpt);
         }
         
