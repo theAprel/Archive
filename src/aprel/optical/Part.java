@@ -33,7 +33,7 @@ public class Part {
     localStoragePath (tmp until written to optical)
     */
     private String id, partFilename, parentFileId, md5, catalog, localStoragePath;
-    private boolean onOptical, md5Verified, leftover;
+    private boolean onOptical, md5Verified;
     private int ordinal, totalInSet, discNumber;
     private FileBean parent;
     private long offset = 0L;
@@ -55,7 +55,6 @@ public class Part {
 
     @XmlTransient
     public void setId(String id) {
-        checkLeftover();
         this.id = id;
     }
     
@@ -83,7 +82,6 @@ public class Part {
 
     @XmlElement
     public void setOffset(long offset) {
-        checkLeftover();
         this.offset = offset;
     }
 
@@ -93,7 +91,6 @@ public class Part {
 
     @XmlElement
     public void setSize(long size) {
-        checkLeftover();
         this.size = size;
     }
 
@@ -103,7 +100,6 @@ public class Part {
 
     @XmlElement
     public void setOrdinal(int ordinal) {
-        checkLeftover();
         this.ordinal = ordinal;
     }
 
@@ -113,7 +109,6 @@ public class Part {
 
     @XmlElement
     public void setTotalInSet(int totalInSet) {
-        checkLeftover();
         this.totalInSet = totalInSet;
     }
 
@@ -123,7 +118,6 @@ public class Part {
 
     @XmlTransient
     public void setMd5(String md5) {
-        checkLeftover();
         this.md5 = md5;
     }
 
@@ -133,7 +127,6 @@ public class Part {
 
     @XmlElement
     public void setPartFilename(String partFilename) {
-        checkLeftover();
         this.partFilename = partFilename;
     }
 
@@ -143,7 +136,6 @@ public class Part {
 
     @XmlElement
     public void setCatalog(String catalog) {
-        checkLeftover();
         this.catalog = catalog;
     }
 
@@ -180,21 +172,6 @@ public class Part {
 
     public void setLocalStoragePath(String localStoragePath) {
         this.localStoragePath = localStoragePath;
-    }
-    
-    public boolean isLeftover() {
-        return leftover;
-    }
-
-    @XmlTransient
-    public void setLeftover(boolean leftover) {
-        this.leftover = leftover;
-    }
-    
-    private void checkLeftover() {
-        if(leftover)
-            throw new IllegalStateException("This Part is a leftover; "
-                    + "you should not alter this attribute.");
     }
 
     @Override
