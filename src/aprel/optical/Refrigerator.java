@@ -41,11 +41,11 @@ public class Refrigerator {
         this.leftovers = leftovers;
     }
 
-    public List<Leftover> getParts() {
+    public List<Leftover> getLeftovers() {
         return leftovers;
     }
 
-    public void setParts(List<Leftover> leftovers) {
+    public void setLeftovers(List<Leftover> leftovers) {
         this.leftovers = leftovers;
     }
 }
