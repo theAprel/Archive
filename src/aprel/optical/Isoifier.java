@@ -278,11 +278,8 @@ public class Isoifier {
             discNumber++;
         }
         //now, handle the leftovers
-        if(leftoverOptical == null) {
-            //we wrote the leftovers and don't have any to save, so delete the xml
-            new File(leftoverXmlFile).delete();
-        }
-        else {
+        new File(leftoverXmlFile).delete();
+        if(leftoverOptical != null) {
             Marshaller marsh = jaxbContext.createMarshaller();
             JAXBSource jsource = new JAXBSource(marsh, new PartsRootContainer(leftoverOptical.getParts()));
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
