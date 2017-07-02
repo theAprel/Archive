@@ -46,7 +46,7 @@ public interface Packer {
      * @param startingSet Opticals to include at the beginning of the returned 
      * list. If the last Optical in the list is not full, adds more file parts 
      * to that Optical. Can be an empty list, but not {@code null}. If 
-     * {{@code startingSet.size()} {@literal >= maxOpticals}}, throws
+     * {{@code startingSet.size()} {@literal > maxOpticals}}, throws
      * {@code IllegalArgumentExpection}.
      * 
      * @return 
