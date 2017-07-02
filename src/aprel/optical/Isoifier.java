@@ -249,6 +249,7 @@ public class Isoifier {
             System.exit(1);
             return;
         }
+        else discNumber++;
         final Optical leftoverOptical = opticals.get(opticals.size()-1)
                 .getAvailableSpace() != 0 ? opticals.remove(opticals.size()-1) : null;
         final BufferedWriter md5FileWriter = new BufferedWriter(new FileWriter(
