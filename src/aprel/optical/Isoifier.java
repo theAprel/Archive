@@ -225,7 +225,7 @@ public class Isoifier {
             System.exit(1);
             return;
         }
-        final Optical leftover = opticals.get(opticals.size()-1)
+        final Optical leftoverOptical = opticals.get(opticals.size()-1)
                 .getAvailableSpace() != 0 ? opticals.remove(opticals.size()-1) : null;
         final BufferedWriter md5FileWriter = new BufferedWriter(new FileWriter(
                 temporaryBasePath + CHECKSUMS_FILENAME));
@@ -278,13 +278,13 @@ public class Isoifier {
             discNumber++;
         }
         //now, handle the leftovers
-        if(leftover == null) {
+        if(leftoverOptical == null) {
             //we wrote the leftovers and don't have any to save, so delete the xml
             new File(leftoverXmlFile).delete();
         }
         else {
             Marshaller marsh = jaxbContext.createMarshaller();
-            JAXBSource jsource = new JAXBSource(marsh, new PartsRootContainer(leftover.getParts()));
+            JAXBSource jsource = new JAXBSource(marsh, new PartsRootContainer(leftoverOptical.getParts()));
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
