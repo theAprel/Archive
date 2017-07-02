@@ -30,8 +30,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.util.JAXBSource;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -135,8 +137,38 @@ public class Isoifier {
             System.exit(1);
             return;
         }
-        
+        List<Leftover> leftoverList = new ArrayList<>();
         final JAXBContext jaxbContext = JAXBContext.newInstance(Refrigerator.class);
+        if(new File(leftoverXmlFile).exists()) {
+            Unmarshaller unmarsh = jaxbContext.createUnmarshaller();
+            Refrigerator fridge = (Refrigerator) unmarsh.unmarshal(new File(leftoverXmlFile));
+            leftoverList = fridge.getLeftovers();
+            leftoverList.forEach(lo -> {
+                Part p = lo.getPart();
+                p.setPartFilename("part" + p.getPartFilename()); //to not clobber new files
+                FileBean partParent = p.getParent();
+                partParent.setId(lo.getParentFilename());
+                partParent.setLocalStoragePath(lo.getParentLocalStoragePath());
+                p.setLeftover(true);
+            });
+        }
+        //all these operations are on empty lists if no XML file was read
+        final List<Part> leftoverParts = leftoverList.stream().map(Leftover::getPart)
+                .collect(Collectors.toList());
+        final List<Optical> startingOpticals = new ArrayList<>();
+        for(int i=0, n=leftoverParts.size(); i < n; i++) {
+            Part p = leftoverParts.get(i);
+            PrivilegedOptical privOpt = new PrivilegedOptical(p);
+            if(privOpt.getAvailableSpace() > 0) {
+                if(i != n-1) {
+                    System.err.println("Leftovers have multiple <" + 
+                            Optical.PAYLOAD_SPACE + "byte files. Exit.");
+                    System.exit(1);
+                    return;
+                }
+            }
+            startingOpticals.add(privOpt);
+        }
         
         Path temporaryDirectory;
         if(cmd.hasOption(OPTION_TEMP_DIRECTORY)) {
@@ -163,7 +195,8 @@ public class Isoifier {
         ArchiveDatabase db = ArchiveDatabase.createDefaultDatabase();
         final List<FileBean> notOnOptical = db.getQueryObject().getAllFilesNotOnOptical();
         Packer packer = new SimplePacker();
-        List<Optical> opticals = packer.packFilesIntoOpticals(notOnOptical, maxOptical);
+        List<Optical> opticals = packer.packFilesIntoOpticals(notOnOptical, 
+                maxOptical, startingOpticals);
         //set properties ordinal and totalInSet
         final Map<FileBean,List<Part>> fileToParts = new HashMap<>();
         opticals.forEach(op -> {
@@ -230,6 +263,8 @@ public class Isoifier {
         final BufferedWriter md5FileWriter = new BufferedWriter(new FileWriter(
                 temporaryBasePath + CHECKSUMS_FILENAME));
         for(Optical opt : opticals) {
+            if(opt instanceof PrivilegedOptical)
+                ((PrivilegedOptical)opt).becomeNormal(); //now is the time!
             opt.writePartsToDir(partsDir);
             //at this point, parts should have all their database fields set
             //commit to database
