@@ -19,6 +19,7 @@ package aprel.optical;
 import aprel.db.beans.FileBean;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +47,16 @@ public class SimplePacker implements Packer {
         for(Map.Entry<String,Collection<FileBean>> entry : parentIdToFiles.asMap()
                 .entrySet()) {
             final Collection<FileBean> fs = entry.getValue();
+            //sort by filesize, smallest first
+            final List<FileBean> sortBySizeSmallFirst = new ArrayList<>(fs);
+            sortBySizeSmallFirst.sort((f1, f2) -> {
+                long diff = f1.getSize() - f2.getSize();
+                if(diff > Integer.MAX_VALUE)
+                    return Integer.MAX_VALUE;
+                if(diff < Integer.MIN_VALUE)
+                    return Integer.MIN_VALUE;
+                return (int) diff;
+            });
             for(FileBean f : fs) {
                 opticals.add(f);
                 if(opticals.size() > maxOpticals)
