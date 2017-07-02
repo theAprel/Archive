@@ -17,11 +17,15 @@
 package aprel.optical;
 
 import aprel.db.beans.FileBean;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 
 /**
  *
  * @author Aprel
  */
+@XmlRootElement(name = "part")
 public class Part {
     /*
     (Serial) id | partFilename | parentFileId (serial) | ordinal | totalInSet |
@@ -29,11 +33,15 @@ public class Part {
     localStoragePath (tmp until written to optical)
     */
     private String id, partFilename, parentFileId, md5, catalog, localStoragePath;
-    private boolean onOptical, md5Verified;
+    private boolean onOptical, md5Verified, leftover;
     private int ordinal, totalInSet, discNumber;
-    private final FileBean parent;
+    private FileBean parent;
     private long offset = 0L;
     private long size = 0L;
+    
+    public Part() {
+        
+    }
     
     public Part(FileBean parent) {
         this.parent = parent;
@@ -45,12 +53,24 @@ public class Part {
         return id;
     }
 
+    @XmlTransient
     public void setId(String id) {
+        checkLeftover();
         this.id = id;
     }
     
     public FileBean getParent() {
         return parent;
+    }
+
+    @XmlElement
+    public void setParentFileId(String parentFileId) {
+        this.parentFileId = parentFileId;
+    }
+
+    @XmlElement
+    public void setParent(FileBean parent) {
+        this.parent = parent;
     }
 
     public String getParentFileId() {
@@ -61,7 +81,9 @@ public class Part {
         return offset;
     }
 
+    @XmlElement
     public void setOffset(long offset) {
+        checkLeftover();
         this.offset = offset;
     }
 
@@ -69,7 +91,9 @@ public class Part {
         return size;
     }
 
+    @XmlElement
     public void setSize(long size) {
+        checkLeftover();
         this.size = size;
     }
 
@@ -77,7 +101,9 @@ public class Part {
         return ordinal;
     }
 
+    @XmlElement
     public void setOrdinal(int ordinal) {
+        checkLeftover();
         this.ordinal = ordinal;
     }
 
@@ -85,7 +111,9 @@ public class Part {
         return totalInSet;
     }
 
+    @XmlElement
     public void setTotalInSet(int totalInSet) {
+        checkLeftover();
         this.totalInSet = totalInSet;
     }
 
@@ -93,7 +121,9 @@ public class Part {
         return md5;
     }
 
+    @XmlTransient
     public void setMd5(String md5) {
+        checkLeftover();
         this.md5 = md5;
     }
 
@@ -101,7 +131,9 @@ public class Part {
         return partFilename;
     }
 
+    @XmlElement
     public void setPartFilename(String partFilename) {
+        checkLeftover();
         this.partFilename = partFilename;
     }
 
@@ -109,7 +141,9 @@ public class Part {
         return catalog;
     }
 
+    @XmlElement
     public void setCatalog(String catalog) {
+        checkLeftover();
         this.catalog = catalog;
     }
 
@@ -117,6 +151,7 @@ public class Part {
         return onOptical;
     }
 
+    @XmlTransient
     public void setOnOptical(boolean onOptical) {
         this.onOptical = onOptical;
     }
@@ -125,6 +160,7 @@ public class Part {
         return md5Verified;
     }
 
+    @XmlTransient
     public void setMd5Verified(boolean md5Verified) {
         this.md5Verified = md5Verified;
     }
@@ -133,8 +169,32 @@ public class Part {
         return discNumber;
     }
 
+    @XmlTransient
     public void setDiscNumber(int discNumber) {
         this.discNumber = discNumber;
+    }
+
+    public String getLocalStoragePath() {
+        return localStoragePath;
+    }
+
+    public void setLocalStoragePath(String localStoragePath) {
+        this.localStoragePath = localStoragePath;
+    }
+    
+    public boolean isLeftover() {
+        return leftover;
+    }
+
+    @XmlTransient
+    public void setLeftover(boolean leftover) {
+        this.leftover = leftover;
+    }
+    
+    private void checkLeftover() {
+        if(leftover)
+            throw new IllegalStateException("This Part is a leftover; "
+                    + "you should not alter this attribute.");
     }
 
     @Override

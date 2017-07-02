@@ -28,6 +28,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.util.JAXBSource;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -49,6 +56,8 @@ public class Isoifier {
     private static final String OPTION_ISO_OUTPUT = "o";
     private static final String OPTION_CREATE_FIRST_DISC_IN_CATALOG = "create-first-disc";
     private static final String OPTION_MAX_OPTICAL = "max";
+    private static final String OPTION_LEFTOVER_XML_FILE = "l";
+    private static final String OPTION_NO_LEFTOVERS_OUTSTANDING = "no-leftovers-outstanding";
     
     public static void main(String[] args) throws Exception {
         Options options = new Options();
@@ -67,6 +76,15 @@ public class Isoifier {
                         + " will keep creating UDF images until all files not yet"
                         + " on optical in the database have been copied.")
                 .numberOfArgs(1).build());
+        options.addOption(Option.builder(OPTION_LEFTOVER_XML_FILE).longOpt("leftovers")
+                .desc("XML for file chunks that should be included when more"
+                        + " data is available to fill the optical medium.")
+                .required().numberOfArgs(1).build());
+        options.addOption(Option.builder().longOpt(OPTION_NO_LEFTOVERS_OUTSTANDING)
+                .desc("set this option if there are no leftover file chunks to be"
+                        + " written to optical. This can only occur when a catalog"
+                        + " has no discs yet, or with extremely intelligent "
+                        + "packing algorithms.").numberOfArgs(0).build());
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd;
@@ -92,6 +110,30 @@ public class Isoifier {
             return;
         }
         udfDir += udfDir.endsWith(File.separator) ? "" : File.separator;
+        
+        String leftoverXmlFile = cmd.getOptionValue(OPTION_LEFTOVER_XML_FILE);
+        if(new File(leftoverXmlFile).isDirectory()) {
+            System.err.println(leftoverXmlFile + " is a directory.");
+            System.exit(1);
+            return;
+        }
+        if(!new File(leftoverXmlFile).exists()) {
+            if(!cmd.hasOption(OPTION_NO_LEFTOVERS_OUTSTANDING)) {
+                System.err.println(leftoverXmlFile + " does not exist. Use --" + 
+                        OPTION_NO_LEFTOVERS_OUTSTANDING + " if there really are "
+                                + "no leftover file chunks waiting to be written to optical.");
+                System.exit(1);
+                return;
+            }
+        }
+        if(cmd.hasOption(OPTION_NO_LEFTOVERS_OUTSTANDING) && new File(leftoverXmlFile).exists()) {
+            System.err.println("There are leftover file chunks outstanding. "
+                    + "Do not use --" + OPTION_NO_LEFTOVERS_OUTSTANDING);
+            System.exit(1);
+            return;
+        }
+        
+        final JAXBContext jaxbContext = JAXBContext.newInstance(PartsRootContainer.class);
         
         Path temporaryDirectory;
         if(cmd.hasOption(OPTION_TEMP_DIRECTORY)) {
@@ -131,13 +173,20 @@ public class Isoifier {
                 fileToParts.get(file).add(p);
             });
         });
-        fileToParts.forEach((file, parts) -> {
+        //since all parts are placed in the same directory prior to writing,
+        //we need to give them a temp unique id to prevent overwriting files
+        //that used to be in different directories but have the same name
+        //this temp unique id will be stripped when the parts acquire their db ids
+        long uniqueId = 0;
+        for(Map.Entry<FileBean,List<Part>> entry : fileToParts.entrySet()) {
+            FileBean file = entry.getKey();
+            List<Part> parts = entry.getValue();
             final int length = parts.size();
             if(length == 1) {
                 // this is where all singleton parts (unsplit files) have their props set 
                 final Part singleton = parts.get(0);
                 singleton.setMd5(file.getMd5());
-                singleton.setPartFilename(file.getFilename());
+                singleton.setPartFilename(uniqueId++ + FILENAME_ORDINAL_SEPARATOR + file.getFilename());
                 singleton.setOrdinal(1);
                 singleton.setTotalInSet(1);
             }
@@ -146,10 +195,10 @@ public class Isoifier {
                     Part p = parts.get(i-1);
                     p.setOrdinal(i);
                     p.setTotalInSet(length);
-                    p.setPartFilename(file.getFilename() + FILENAME_ORDINAL_SEPARATOR + i);
+                    p.setPartFilename(uniqueId++ + FILENAME_ORDINAL_SEPARATOR + file.getFilename());
                 }
             }
-        });
+        }
         
         final String partsDir = temporaryDirectory.toString();
         final Insert ins = db.getInsertObject();
@@ -173,6 +222,8 @@ public class Isoifier {
             System.exit(1);
             return;
         }
+        final Optical leftover = opticals.get(opticals.size()-1)
+                .getAvailableSpace() != 0 ? opticals.remove(opticals.size()-1) : null;
         for(Optical opt : opticals) {
             opt.writePartsToDir(partsDir);
             //at this point, parts should have all their database fields set
@@ -193,14 +244,15 @@ public class Isoifier {
                 com.google.common.io.Files.move(
                         new File(temporaryBasePath + p.getPartFilename()),
                         new File(temporaryBasePath + p.getId() + FILENAME_ORDINAL_SEPARATOR 
-                                + p.getPartFilename() + FILENAME_ORDINAL_SEPARATOR 
+       /*strip temp uniqid-->*/ + p.getPartFilename().split(FILENAME_ORDINAL_SEPARATOR,2)[1] 
+                                + FILENAME_ORDINAL_SEPARATOR 
                                 + p.getOrdinal() + FILENAME_ORDINAL_SEPARATOR 
                                 + p.getTotalInSet()));
             }
             //now, package the contents of the temp directory to a udf image, then clear the temp files
             final String udfFilename = catalog + FILENAME_ORDINAL_SEPARATOR + discNumber;
             ProcessBuilder pb = new ProcessBuilder("mkisofs", "-R", "-J", "-udf", 
-                    "-iso-level 3", "-V " + udfFilename,"-o " + udfDir + udfFilename + ".iso")
+                    "-iso-level", "3", "-V", udfFilename, "-o", udfDir + udfFilename + ".iso", temporaryBasePath)
                     .inheritIO();
             System.out.println("Starting mkisofs...");
             Process p = pb.start();
@@ -209,6 +261,22 @@ public class Isoifier {
             Arrays.asList(temporaryDirectory.toFile().listFiles()).forEach(f -> f.delete());
             
             discNumber++;
+        }
+        //now, handle the leftovers
+        if(leftover == null) {
+            //we wrote the leftovers and don't have any to save, so delete the xml
+            new File(leftoverXmlFile).delete();
+        }
+        else {
+            Marshaller marsh = jaxbContext.createMarshaller();
+            JAXBSource jsource = new JAXBSource(marsh, new PartsRootContainer(leftover.getParts()));
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+            transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+            StreamResult result = new StreamResult(leftoverXmlFile);
+            transformer.transform(jsource, result);
         }
         
         db.close();
