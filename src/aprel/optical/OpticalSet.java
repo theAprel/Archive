@@ -43,6 +43,10 @@ public class OpticalSet {
         return new ArrayList<>(opticals);
     }
     
+    public int size() {
+        return opticals.size();
+    }
+    
     public void add(FileBean file) {
         final long fileSize = file.getSize();
         long bytesOfFileRemaining = fileSize;

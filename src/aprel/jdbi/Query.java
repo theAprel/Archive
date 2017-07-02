@@ -69,4 +69,8 @@ public interface Query {
     @SqlQuery("SELECT * FROM files WHERE NOT onOptical")
     @Mapper(FileBeanMapper.class)
     public List<FileBean> getAllFilesNotOnOptical();
+    
+    //PART-RELATED QUERIES
+    @SqlQuery("SELECT MAX(discNumber) FROM parts WHERE catalog= :cat")
+    public int getLastDiscNumberInSeries(@Bind("cat") String catalog);
 }

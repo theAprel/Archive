@@ -24,14 +24,24 @@ import java.util.List;
  *
  * A Packer takes a collection of files, chunks them into Parts, and packs the 
  * parts into Opticals. Each implementation can choose how best to accomplish 
- * this. In addition, implementations may choose not to pack certain files.
+ * this. In addition, implementations may choose not to pack certain files. 
+ * However, if a Packer excludes files, it must take care to not write parts of 
+ * the excluded files in Opticals.
  * 
  * Packers must set the parent, size, and offset of the Parts they create, but 
- * the do not have to set the "ordinal" and "totalInSet" properties, which must 
+ * they do not have to set the "ordinal" and "totalInSet" properties, which must 
  * be set externally.
  * 
  * @author Aprel
  */
 public interface Packer {
-    public List<Optical> packFilesIntoOpticals(Collection<FileBean> files);
+    /**
+     * 
+     * @param files
+     * @param maxOpticals the <i>maximum</i> size of the returned list; the list 
+     * can have fewer than this value. This would occur, for instance, if it is 
+     * not possible to include a large file in the remaining space.
+     * @return 
+     */
+    public List<Optical> packFilesIntoOpticals(Collection<FileBean> files, int maxOpticals);
 }

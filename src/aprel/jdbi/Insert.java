@@ -17,8 +17,8 @@
 package aprel.jdbi;
 
 import aprel.db.beans.FileBean;
+import aprel.optical.Part;
 import java.util.Iterator;
-import java.util.List;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.BindBean;
 import org.skife.jdbi.v2.sqlobject.GetGeneratedKeys;
@@ -63,4 +63,9 @@ public interface Insert {
     @SqlUpdate("INSERT INTO directories (dirName, dirParentId) VALUES (:dir, :parent)")
     @GetGeneratedKeys
     public String createDirectory(@Bind("dir") String dirName, @Bind("parent") String dirParentId);
+    
+    @SqlUpdate("INSERT INTO parts (partFilename, parentFileId, ordinal, totalInSet, md5, size, onOptical, md5Verified, catalog, discNumber, localStoragePath) "
+            + "VALUES (:partFilename, :parentFileId, :ordinal, :totalInSet, :md5, :size, :onOptical, :md5Verified, :catalog, :discNumber, :localStoragePath)")
+    @GetGeneratedKeys
+    public String insertPart(@BindBean Part p);
 }

@@ -18,11 +18,23 @@ package aprel.optical;
 
 import aprel.ArchiveDatabase;
 import aprel.db.beans.FileBean;
+import aprel.jdbi.Insert;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
 /**
  *
@@ -31,12 +43,82 @@ import java.util.stream.Collectors;
 public class Isoifier {
     
     public static final String FILENAME_ORDINAL_SEPARATOR = "-";
+    private static final String TEMPORARY_DIR_PREFIX = "java-archive-udf";
+    
+    private static final String OPTION_TEMP_DIRECTORY = "t";
+    private static final String OPTION_ISO_OUTPUT = "o";
+    private static final String OPTION_CREATE_FIRST_DISC_IN_CATALOG = "create-first-disc";
+    private static final String OPTION_MAX_OPTICAL = "max";
     
     public static void main(String[] args) throws Exception {
+        Options options = new Options();
+        options.addOption(Option.builder(OPTION_TEMP_DIRECTORY).longOpt("temp")
+                .desc("directory where temporary files will be stored prior to "
+                        + "their inclusion in the UDF image. If not specified, "
+                        + "the default temporary directory provided by the "
+                        + "filesystem will be used.").numberOfArgs(1).build());
+        options.addOption(Option.builder().longOpt(OPTION_CREATE_FIRST_DISC_IN_CATALOG)
+                .desc("set this option if there are no discs in this catalog yet.")
+                .numberOfArgs(0).build());
+        options.addOption(Option.builder(OPTION_ISO_OUTPUT).required()
+                .desc("directory for UDF image files").numberOfArgs(1).build());
+        options.addOption(Option.builder(OPTION_MAX_OPTICAL)
+                .desc("maximum number of image files to create. If not set, this"
+                        + " will keep creating UDF images until all files not yet"
+                        + " on optical in the database have been copied.")
+                .numberOfArgs(1).build());
+        CommandLineParser parser = new DefaultParser();
+        HelpFormatter formatter = new HelpFormatter();
+        CommandLine cmd;
+        try {
+            cmd = parser.parse(options, args);
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            formatter.printHelp(Isoifier.class.getSimpleName(), options);
+
+            System.exit(1);
+            return;
+        }
+        final int maxOptical = cmd.hasOption(OPTION_MAX_OPTICAL) ? 
+                Integer.parseInt(cmd.getOptionValue(OPTION_MAX_OPTICAL)) 
+                : Integer.MAX_VALUE;
+        final boolean createFirstDiscInCatalog = cmd.hasOption(
+                OPTION_CREATE_FIRST_DISC_IN_CATALOG);
+        
+        String udfDir = cmd.getOptionValue(OPTION_ISO_OUTPUT);
+        if(!new File(udfDir).isDirectory()) {
+            System.err.println(udfDir + " is not a directory");
+            System.exit(1);
+            return;
+        }
+        udfDir += udfDir.endsWith(File.separator) ? "" : File.separator;
+        
+        Path temporaryDirectory;
+        if(cmd.hasOption(OPTION_TEMP_DIRECTORY)) {
+            final Path pathGiven =  Paths.get(cmd.getOptionValue(OPTION_TEMP_DIRECTORY));
+            if(!Files.exists(pathGiven)) {
+                System.err.println("Temp directory does not exist.");
+                System.exit(1);
+                return;
+            }
+            else if(!Files.isDirectory(pathGiven)) {
+                System.err.println("Temporary location is not a directory.");
+                System.exit(1);
+                return;
+            }
+            temporaryDirectory = Paths.get(pathGiven.toAbsolutePath().toString() 
+                    + File.separator + TEMPORARY_DIR_PREFIX);
+        }
+        else {
+            temporaryDirectory = Files.createTempDirectory(TEMPORARY_DIR_PREFIX);
+        }
+        temporaryDirectory.toFile().deleteOnExit();
+        final String temporaryBasePath = temporaryDirectory + File.separator;
+        
         ArchiveDatabase db = ArchiveDatabase.createDefaultDatabase();
         final List<FileBean> notOnOptical = db.getQueryObject().getAllFilesNotOnOptical();
         Packer packer = new SimplePacker();
-        List<Optical> opticals = packer.packFilesIntoOpticals(notOnOptical);
+        List<Optical> opticals = packer.packFilesIntoOpticals(notOnOptical, maxOptical);
         //set properties ordinal and totalInSet
         final Map<FileBean,List<Part>> fileToParts = new HashMap<>();
         opticals.forEach(op -> {
@@ -69,9 +151,65 @@ public class Isoifier {
             }
         });
         
-        List<Part> multipart = fileToParts.values().stream().flatMap(List::stream)
-                .filter(p -> p.getTotalInSet() > 1).collect(Collectors.toList());
-        System.out.println(multipart);
+        final String partsDir = temporaryDirectory.toString();
+        final Insert ins = db.getInsertObject();
+        final String catalog = opticals.stream().findAny().get().getParts()
+                .stream().findAny().get().getCatalog();
+        int discNumber = db.getQueryObject().getLastDiscNumberInSeries(catalog);
+        if(createFirstDiscInCatalog) {
+            if(discNumber == 0) {
+                discNumber = 1;
+            }
+            else {
+                System.err.println("Received --" + OPTION_CREATE_FIRST_DISC_IN_CATALOG
+                        + " but there are already discs in this catalog. Exit.");
+                System.exit(1);
+                return;
+            }
+        }
+        else if(discNumber == 0) {
+            System.err.println("Catalog has no discs. Use --" + 
+                    OPTION_CREATE_FIRST_DISC_IN_CATALOG + " to create the first disc.");
+            System.exit(1);
+            return;
+        }
+        for(Optical opt : opticals) {
+            opt.writePartsToDir(partsDir);
+            //at this point, parts should have all their database fields set
+            //commit to database
+            final List<Part> parts = opt.getParts();
+            for(Part p : parts) {
+                if(!p.getCatalog().equals(catalog)) {
+                    System.err.println("Multiple catalogs detected. Exit.");
+                    System.exit(1);
+                    return;
+                }
+                p.setOnOptical(true);
+                p.setMd5Verified(false);
+                p.setDiscNumber(discNumber);
+                final String id = ins.insertPart(p);
+                p.setId(id);
+                //now that parts have db ids, rename them to conform to "id-filename-ordinal"
+                com.google.common.io.Files.move(
+                        new File(temporaryBasePath + p.getPartFilename()),
+                        new File(temporaryBasePath + p.getId() + FILENAME_ORDINAL_SEPARATOR 
+                                + p.getPartFilename() + FILENAME_ORDINAL_SEPARATOR 
+                                + p.getOrdinal() + FILENAME_ORDINAL_SEPARATOR 
+                                + p.getTotalInSet()));
+            }
+            //now, package the contents of the temp directory to a udf image, then clear the temp files
+            final String udfFilename = catalog + FILENAME_ORDINAL_SEPARATOR + discNumber;
+            ProcessBuilder pb = new ProcessBuilder("mkisofs", "-R", "-J", "-udf", 
+                    "-iso-level 3", "-V " + udfFilename,"-o " + udfDir + udfFilename + ".iso")
+                    .inheritIO();
+            System.out.println("Starting mkisofs...");
+            Process p = pb.start();
+            p.waitFor();
+            System.out.println("Successfully saved to " + udfFilename + ".iso");
+            Arrays.asList(temporaryDirectory.toFile().listFiles()).forEach(f -> f.delete());
+            
+            discNumber++;
+        }
         
         db.close();
     }

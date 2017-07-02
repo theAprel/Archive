@@ -14,6 +14,6 @@ Table: metadata
 fileId (File serial ID) | title | subtitle | description | channel (service_name) | originalBroadcast (datetime) | originalRuntime | duration100Nanos | duration (readable)
 
 
-Table: parts (save files in UDF for disc with partSerialId-partFilename)
+Table: parts (save files in UDF for disc with partSerialId-partFilename-ordinal-totalInSet)
 
 (Serial) id | partFilename | parentFileId (serial) | ordinal | totalInSet | md5 | size | BOOL onOptical | BOOL md5Verified | catalog | discNumber | localStoragePath (tmp until written to optical)

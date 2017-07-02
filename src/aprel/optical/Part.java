@@ -40,6 +40,14 @@ public class Part {
         parentFileId = parent.getId();
         catalog = parent.getCatalog();
     }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
     
     public FileBean getParent() {
         return parent;
@@ -103,6 +111,30 @@ public class Part {
 
     public void setCatalog(String catalog) {
         this.catalog = catalog;
+    }
+
+    public boolean isOnOptical() {
+        return onOptical;
+    }
+
+    public void setOnOptical(boolean onOptical) {
+        this.onOptical = onOptical;
+    }
+
+    public boolean isMd5Verified() {
+        return md5Verified;
+    }
+
+    public void setMd5Verified(boolean md5Verified) {
+        this.md5Verified = md5Verified;
+    }
+
+    public int getDiscNumber() {
+        return discNumber;
+    }
+
+    public void setDiscNumber(int discNumber) {
+        this.discNumber = discNumber;
     }
 
     @Override

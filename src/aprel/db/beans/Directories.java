@@ -149,7 +149,8 @@ public class Directories {
         
         //then, set the localStoragePath field for each file, as well as other relevant fields
         pathToBean.forEach((relativePath, bean) -> bean.setLocalStoragePath(
-                localBasePath + (relativePath.length() == 0 ? "" : "/") + relativePath));
+                localBasePath + (relativePath.length() == 0 ? "" : "/") + relativePath 
+                        + "/" + bean.getFilename()));
         
         //all done! Ready to be committed to the database by another method
         canAcceptFiles = false;
