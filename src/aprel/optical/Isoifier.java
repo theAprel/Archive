@@ -21,7 +21,10 @@ import aprel.db.beans.FileBean;
 import aprel.jdbi.Insert;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
@@ -54,7 +58,7 @@ import org.apache.commons.cli.ParseException;
 public class Isoifier {
     
     public static final String FILENAME_ORDINAL_SEPARATOR = "-";
-    public static final String CHECKSUMS_FILENAME = "java-archive-generated-3bc62bbb2cf99142-checksums.md5";
+    public static final String CHECKSUMS_FILENAME = "java-archive-generated-3bc62bbb2cf99142-checksums.md5.gz";
     private static final String TEMPORARY_DIR_PREFIX = "java-archive-udf";
     
     private static final String OPTION_TEMP_DIRECTORY = "t";
@@ -252,8 +256,9 @@ public class Isoifier {
         else discNumber++;
         final Optical leftoverOptical = opticals.get(opticals.size()-1)
                 .getAvailableSpace() != 0 ? opticals.remove(opticals.size()-1) : null;
-        final BufferedWriter md5FileWriter = new BufferedWriter(new FileWriter(
-                temporaryBasePath + CHECKSUMS_FILENAME));
+        final BufferedWriter md5FileWriter = new BufferedWriter(new OutputStreamWriter(
+                new GZIPOutputStream(new FileOutputStream(
+                        temporaryBasePath + CHECKSUMS_FILENAME)),Charset.forName("utf-8")));
         for(Optical opt : opticals) {
             if(opt instanceof PrivilegedOptical)
                 ((PrivilegedOptical)opt).becomeNormal(); //now is the time!
