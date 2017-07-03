@@ -50,9 +50,8 @@ public class SimplePacker implements Packer {
         iter:
         for(Map.Entry<String,Collection<FileBean>> entry : dirToFiles.asMap()
                 .entrySet()) {
-            final Collection<FileBean> fs = entry.getValue();
             //sort by filesize, smallest first
-            final List<FileBean> sortBySizeSmallFirst = new ArrayList<>(fs);
+            final List<FileBean> sortBySizeSmallFirst = new ArrayList<>(entry.getValue());
             sortBySizeSmallFirst.sort((f1, f2) -> {
                 long diff = f1.getSize() - f2.getSize();
                 if(diff > Integer.MAX_VALUE)
@@ -61,7 +60,7 @@ public class SimplePacker implements Packer {
                     return Integer.MIN_VALUE;
                 return (int) diff;
             });
-            for(FileBean f : fs) {
+            for(FileBean f : sortBySizeSmallFirst) {
                 opticals.add(f);
                 if(opticals.size() > maxOpticals)
                     break iter;
