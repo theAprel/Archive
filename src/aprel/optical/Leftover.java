@@ -29,7 +29,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement( name = "leftover")
 public class Leftover {
     private Part part;
-    private String parentFilename, parentLocalStoragePath;
+    private String parentFilename, parentLocalStoragePath, parentId;
     
     public Leftover() {
         
@@ -39,6 +39,7 @@ public class Leftover {
         part = p;
         parentFilename = p.getParent().getFilename();
         parentLocalStoragePath = p.getParent().getLocalStoragePath();
+        parentId = p.getParent().getId();
     }
 
     public Part getPart() {
@@ -64,6 +65,14 @@ public class Leftover {
 
     public void setParentLocalStoragePath(String parentLocalStoragePath) {
         this.parentLocalStoragePath = parentLocalStoragePath;
+    }
+
+    public String getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
     }
     
     public static List<Leftover> createLeftovers(Collection<Part> parts) {

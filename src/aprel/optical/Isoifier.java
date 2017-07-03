@@ -154,6 +154,7 @@ public class Isoifier {
                 FileBean partParent = p.getParent();
                 partParent.setId(lo.getParentFilename());
                 partParent.setLocalStoragePath(lo.getParentLocalStoragePath());
+                partParent.setId(lo.getParentId());
             });
         }
         //all these operations are on empty lists if no XML file was read
