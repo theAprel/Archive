@@ -19,6 +19,7 @@ package aprel.jdbi;
 import aprel.db.beans.FileBean;
 import aprel.optical.Part;
 import java.util.Iterator;
+import java.util.List;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.BindBean;
 import org.skife.jdbi.v2.sqlobject.GetGeneratedKeys;
@@ -70,5 +71,5 @@ public interface Insert {
     public String insertPart(@BindBean Part p);
     
     @SqlBatch("UPDATE files SET onOptical=1 WHERE id= :id")
-    public void updateFilesOnOptical(@BindBean Iterator<FileBean> files);
+    public void updateFilesOnOptical(@Bind("id") List<String> fileIds);
 }

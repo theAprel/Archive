@@ -310,7 +310,8 @@ public class Isoifier {
             Process p = pb.start();
             p.waitFor();
             System.out.println("Successfully saved to " + udfFilename + ".iso");
-            ins.updateFilesOnOptical(filesAddedToOptical.iterator());
+            ins.updateFilesOnOptical(filesAddedToOptical.stream().map(FileBean::getId)
+                    .collect(Collectors.toList()));
             Arrays.asList(temporaryDirectory.toFile().listFiles()).forEach(f -> f.delete());
             
             discNumber++;
