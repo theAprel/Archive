@@ -286,16 +286,15 @@ public class Isoifier {
                 //end "clever" hack
                 p.setId(id);
                 //now that parts have db ids, rename them to conform to "id-filename-ordinal"
-                String newFilename;
-                com.google.common.io.Files.move(
-                        new File(temporaryBasePath + p.getPartFilename()),
-                        new File(newFilename = temporaryBasePath + p.getId() + FILENAME_ORDINAL_SEPARATOR 
+                final String newFilename =  p.getId() + FILENAME_ORDINAL_SEPARATOR 
        /*strip temp uniqid-->*/ + p.getPartFilename().split(FILENAME_ORDINAL_SEPARATOR,2)[1] 
                                 + FILENAME_ORDINAL_SEPARATOR 
                                 + p.getOrdinal() + FILENAME_ORDINAL_SEPARATOR 
-                                + p.getTotalInSet()));
-                //write md5 checksums before changing filename to full path
-                md5FileWriter.write(p.getMd5() + "  " + p.getPartFilename());
+                                + p.getTotalInSet();
+                com.google.common.io.Files.move(
+                        new File(temporaryBasePath + p.getPartFilename()),
+                        new File(temporaryBasePath + newFilename));
+                md5FileWriter.write(p.getMd5() + "  " + newFilename);
                 md5FileWriter.newLine();
                 p.setPartFilename(newFilename);
                 filesAddedToOptical.add(p.getParent());
