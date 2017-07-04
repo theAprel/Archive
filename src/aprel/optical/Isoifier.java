@@ -191,6 +191,11 @@ public class Isoifier {
         
         ArchiveDatabase db = ArchiveDatabase.createDefaultDatabase();
         final List<FileBean> notOnOptical = db.getQueryObject().getAllFilesNotOnOptical();
+        if(notOnOptical.isEmpty()) {
+            System.out.println("All files in archive have been written to optical images.");
+            System.out.println("Nothing to do. Exit.");
+            System.exit(0);
+        }
         Packer packer = new SimplePacker();
         List<Optical> opticals = packer.packFilesIntoOpticals(notOnOptical, 
                 maxOptical, startingOpticals);
