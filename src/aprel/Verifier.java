@@ -61,7 +61,7 @@ public class Verifier implements FileVisitor<Path> {
     private final String opticalRoot;
     private final Map<String,String> fileToMd5sum;
     private final HashFunction md5;
-    private Set<String> verifiedIds;
+    private final Set<String> verifiedIds;
     private boolean hasMd5VerificationErrors = false;
     
     @SuppressWarnings("deprecation")
@@ -117,7 +117,7 @@ public class Verifier implements FileVisitor<Path> {
     }
     
     public void updateDatabase(ArchiveDatabase db) {
-        if(hasMd5VerificationErrors)
+        if(hasVerificationErrors())
             throw new IllegalStateException("Cannot update database because "
                     + "there were verification errors");
         Insert ins = db.getInsertObject();
@@ -149,7 +149,8 @@ public class Verifier implements FileVisitor<Path> {
     }
     
     public boolean hasVerificationErrors() {
-        return hasMd5VerificationErrors;
+        //second part is whether there are more files in md5 checksum file than encountered in dir
+        return hasMd5VerificationErrors || verifiedIds.size() != fileToMd5sum.size();
     }
 
     @Override
@@ -172,14 +173,13 @@ public class Verifier implements FileVisitor<Path> {
             System.out.println(file.getFileName() + ": OK");
             verifiedIds.add(file.getFileName().toString().split(
                     Isoifier.FILENAME_ORDINAL_SEPARATOR)[0]);
+            return FileVisitResult.CONTINUE;
         }
         else {
             hasMd5VerificationErrors = true;
             System.err.println("FAILED: " + file.getFileName());
             return FileVisitResult.TERMINATE;
         }
-        
-        return FileVisitResult.CONTINUE;
     }
 
     @Override
