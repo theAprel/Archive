@@ -258,9 +258,6 @@ public class Isoifier {
         else discNumber++;
         final Optical leftoverOptical = opticals.get(opticals.size()-1)
                 .getAvailableSpace() != 0 ? opticals.remove(opticals.size()-1) : null;
-        final BufferedWriter md5FileWriter = new BufferedWriter(new OutputStreamWriter(
-                new GZIPOutputStream(new FileOutputStream(
-                        temporaryBasePath + CHECKSUMS_FILENAME)),Charset.forName("utf-8")));
         final Set<FileBean> filesAddedToOptical = new HashSet<>();
         for(Optical opt : opticals) {
             if(opt instanceof PrivilegedOptical)
@@ -268,6 +265,9 @@ public class Isoifier {
             opt.writePartsToDir(partsDir);
             //at this point, parts should have all their database fields set
             //commit to database
+            final BufferedWriter md5FileWriter = new BufferedWriter(new OutputStreamWriter(
+                new GZIPOutputStream(new FileOutputStream(
+                        temporaryBasePath + CHECKSUMS_FILENAME)),Charset.forName("utf-8")));
             final List<Part> parts = opt.getParts();
             for(Part p : parts) {
                 if(!p.getCatalog().equals(catalog)) {
