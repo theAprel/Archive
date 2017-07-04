@@ -50,6 +50,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.skife.jdbi.v2.Query;
 
 /**
  *
@@ -129,8 +130,9 @@ public class Verifier implements FileVisitor<Path> {
         List<FileBean> unverifiedFiles = db.getQueryObject().getAllFilesNotMd5Verified();
         String fileIds = unverifiedFiles.stream().map(FileBean::getId)
                 .collect(Collectors.joining(","));
-        List<Part> partsWithUnverifiedParents = db.getQueryObject()
-                .getPartsFromParentFileIds(fileIds);
+        Query<Part> partQuery = db.getHandle().createQuery("SELECT * FROM parts WHERE parentFileId IN (" + fileIds + ")")
+                .map(Part.class);
+        List<Part> partsWithUnverifiedParents = partQuery.list();
         Multimap<String,Part> parentFileIdsToPartsInDb = HashMultimap.create();
         partsWithUnverifiedParents.forEach(p -> parentFileIdsToPartsInDb.put(
                 p.getParentFileId(), p));

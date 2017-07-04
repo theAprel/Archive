@@ -72,7 +72,7 @@ public interface Query {
     @Mapper(FileBeanMapper.class)
     public List<FileBean> getAllFilesNotOnOptical();
     
-    @SqlQuery("SELECT * FROM parts WHERE NOT md5Verified")
+    @SqlQuery("SELECT * FROM files WHERE NOT md5Verified")
     @Mapper(FileBeanMapper.class)
     public List<FileBean> getAllFilesNotMd5Verified();
     
@@ -85,7 +85,4 @@ public interface Query {
     @Mapper(PartMapper.class)
     public List<Part> getMd5VerifiedParts();
     
-    @SqlQuery("SELECT * FROM parts WHERE parentFileId IN (:ids)")
-    @Mapper(PartMapper.class)
-    public List<Part> getPartsFromParentFileIds(@Bind("ids") String commaSeparatedIds);
 }
