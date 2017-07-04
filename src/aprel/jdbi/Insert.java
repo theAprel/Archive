@@ -75,4 +75,7 @@ public interface Insert {
     
     @SqlBatch("UPDATE parts SET md5Verified=1 WHERE id= :id")
     public void updateVerifiedParts(@Bind("id") Iterator<String> partIds);
+    
+    @SqlBatch("UPDATE files SET md5Verified=1 WHERE id= :id")
+    public void updateFullyVerifiedFiles(@Bind("id") Iterator<String> fileIds);
 }

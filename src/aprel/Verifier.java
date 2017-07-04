@@ -16,8 +16,12 @@
  */
 package aprel;
 
+import aprel.db.beans.FileBean;
 import aprel.jdbi.Insert;
 import aprel.optical.Isoifier;
+import aprel.optical.Part;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import java.io.BufferedReader;
@@ -34,8 +38,10 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -116,6 +122,30 @@ public class Verifier implements FileVisitor<Path> {
                     + "there were verification errors");
         Insert ins = db.getInsertObject();
         ins.updateVerifiedParts(verifiedIds.iterator());
+        updateFilesFullyVerified(db);
+    }
+    
+    private static void updateFilesFullyVerified(ArchiveDatabase db) {
+        List<FileBean> unverifiedFiles = db.getQueryObject().getAllFilesNotMd5Verified();
+        String fileIds = unverifiedFiles.stream().map(FileBean::getId)
+                .collect(Collectors.joining(","));
+        List<Part> partsWithUnverifiedParents = db.getQueryObject()
+                .getPartsFromParentFileIds(fileIds);
+        Multimap<String,Part> parentFileIdsToPartsInDb = HashMultimap.create();
+        partsWithUnverifiedParents.forEach(p -> parentFileIdsToPartsInDb.put(
+                p.getParentFileId(), p));
+        Set<String> fullyVerifiedIds = new HashSet<>();
+        parentFileIdsToPartsInDb.asMap().forEach((parent, children) -> {
+            if(!children.isEmpty()) {
+                final int totalInSet = children.stream().findAny().get().getTotalInSet();
+                if(children.size() == totalInSet) {
+                    if(children.stream().allMatch(Part::isMd5Verified)) {
+                        fullyVerifiedIds.add(parent);
+                    }
+                }
+            }
+        });
+        db.getInsertObject().updateFullyVerifiedFiles(fullyVerifiedIds.iterator());
     }
     
     public boolean hasVerificationErrors() {

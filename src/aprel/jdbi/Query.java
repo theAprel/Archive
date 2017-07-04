@@ -20,6 +20,8 @@ import aprel.db.beans.DirectoryBean;
 import aprel.db.beans.FileBean;
 import aprel.jdbi.beanmappers.DirectoryBeanMapper;
 import aprel.jdbi.beanmappers.FileBeanMapper;
+import aprel.jdbi.beanmappers.PartMapper;
+import aprel.optical.Part;
 import java.util.List;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.BindBean;
@@ -70,7 +72,20 @@ public interface Query {
     @Mapper(FileBeanMapper.class)
     public List<FileBean> getAllFilesNotOnOptical();
     
+    @SqlQuery("SELECT * FROM parts WHERE NOT md5Verified")
+    @Mapper(FileBeanMapper.class)
+    public List<FileBean> getAllFilesNotMd5Verified();
+    
     //PART-RELATED QUERIES
     @SqlQuery("SELECT MAX(discNumber) FROM parts WHERE catalog= :cat")
     public int getLastDiscNumberInSeries(@Bind("cat") String catalog);
+    
+    @Deprecated
+    @SqlQuery("SELECT * FROM parts WHERE md5Verified")
+    @Mapper(PartMapper.class)
+    public List<Part> getMd5VerifiedParts();
+    
+    @SqlQuery("SELECT * FROM parts WHERE parentFileId IN (:ids)")
+    @Mapper(PartMapper.class)
+    public List<Part> getPartsFromParentFileIds(@Bind("ids") String commaSeparatedIds);
 }
