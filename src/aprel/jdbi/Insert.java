@@ -72,4 +72,7 @@ public interface Insert {
     
     @SqlBatch("UPDATE files SET onOptical=1 WHERE id= :id")
     public void updateFilesOnOptical(@Bind("id") List<String> fileIds);
+    
+    @SqlBatch("UPDATE parts SET md5Verified=1 WHERE id= :id")
+    public void updateVerifiedParts(@Bind("id") Iterator<String> partIds);
 }
