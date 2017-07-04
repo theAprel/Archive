@@ -115,6 +115,7 @@ public class Verifier implements FileVisitor<Path> {
             System.out.println("Verification successful. Updating database...");
             v.updateDatabase(db);
         }
+        db.close();
     }
     
     public void updateDatabase(ArchiveDatabase db) {
