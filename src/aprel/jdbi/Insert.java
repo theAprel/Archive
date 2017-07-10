@@ -85,4 +85,10 @@ public interface Insert {
     
     @SqlUpdate("UPDATE directories SET dirParentId= :parent WHERE id= :id")
     public void updateParentOfDirectory(@BindBean DirectoryBean dir, @Bind("parent") String newParentId);
+    
+    @SqlUpdate("UPDATE files SET filename= :rename WHERE id= :id")
+    public void renameFile(@BindBean FileBean file, @Bind("rename") String newName);
+    
+    @SqlUpdate("UPDATE directories SET dirName= :rename WHERE id= :id")
+    public void renameDirectory(@BindBean DirectoryBean dir, @Bind("rename") String newName);
 }

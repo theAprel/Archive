@@ -192,6 +192,12 @@ public class FileBean implements DbFile {
     }
 
     @Override
+    public void rename(String newName, ArchiveDatabase db) {
+        db.getInsertObject().renameFile(this, newName);
+        setFilename(newName);
+    }
+
+    @Override
     public int hashCode() {
         int hash = 7;
         hash = 59 * hash + Objects.hashCode(this.md5);

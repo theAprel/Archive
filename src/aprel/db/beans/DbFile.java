@@ -26,6 +26,8 @@ public interface DbFile {
     public String getName();
     public String getId();
     /**
+     * USE {@code DirectoryStructure.moveTo} INSTEAD!
+     * 
      * Moves this file to a new parent, changing its internal properties and 
      * database representation to reflect the new parent. However, this does not 
      * perform any checks on the validity of this move with the file-structure 
@@ -34,4 +36,11 @@ public interface DbFile {
      * @param db 
      */
     public void move(DirectoryBean newParent, ArchiveDatabase db);
+    /**
+     * USE {@code DirectoryStructure.rename} INSTEAD!
+     * 
+     * @param newName 
+     * @param db 
+     */
+    public void rename(String newName, ArchiveDatabase db);
 }

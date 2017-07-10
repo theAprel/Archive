@@ -103,6 +103,12 @@ public class DirectoryBean implements DbFile {
         db.getInsertObject().updateParentOfDirectory(this, newParentId);
         setDirParentId(newParentId);
     }
+    
+    @Override
+    public void rename(String newName, ArchiveDatabase db) {
+        db.getInsertObject().renameDirectory(this, newName);
+        setDirName(newName);
+    }
 
     @Override
     public int hashCode() {

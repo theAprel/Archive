@@ -254,6 +254,22 @@ public class DirectoryStructure {
     }
     
     /**
+     * 
+     * @param child
+     * @param newName
+     * @return false if there is already a file by name newName (makes no update 
+     * to the db; true otherwise.
+     */
+    public boolean rename(DbFile child, String newName) {
+        if(!(files.contains(child) || directories.contains(child)))
+            throw new IllegalArgumentException("Not a child file: " + child);
+        if(getNamesInDir().contains(newName))
+            return false;
+        child.rename(newName, db);
+        return true;
+    }
+    
+    /**
      * Inserts the files into the db, trusting that any missing directories have 
      * already been created externally.
      * 
