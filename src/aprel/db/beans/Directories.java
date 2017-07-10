@@ -20,7 +20,6 @@ import aprel.ArchiveDatabase;
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;

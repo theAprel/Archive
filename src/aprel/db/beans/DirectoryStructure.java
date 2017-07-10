@@ -62,19 +62,6 @@ public class DirectoryStructure {
             files = new ArrayList<>();
             directories = new ArrayList<>();
         }
-//        for(String dir : pathParts) {
-//            DirectoryBean parentBean = beanPath.get(beanPath.size()-1);
-//            String parentId = parentBean.getId();
-//            DirectoryBean bean = getDir(dir, parentId);
-//            if(bean == null) {
-//                LOG.debug("Directory does not exist in archive: " + dir);
-//                bean = new DirectoryBean();
-//                bean.setDirName(dir);
-//                bean.setParent(parentBean);
-//                newDirectories.add(bean);
-//            }
-//            beanPath.add(bean);
-//        }
     }
     
     /**
@@ -277,23 +264,4 @@ public class DirectoryStructure {
         return bean;
     }
     
-    /**
-     * Does not check whether directory already exists.
-     * @param dirName
-     * @param parentDirId
-     * @return 
-     */
-//    private DirectoryBean createDirectory(String dirName, String parentDirId) {
-//        LOG.debug("Creating directory " + dirName + " with parent " + parentDirId);
-//        String id = db.getInsertObject().createDirectory(dirName, parentDirId);
-//        if(id == null) {
-//            throw new IllegalStateException("Did not receive new serial id when creating dir");
-//        }
-//        DirectoryBean bean = new DirectoryBean();
-//        bean.setId(id);
-//        bean.setDirName(dirName);
-//        bean.setDirParentId(parentDirId);
-//        LOG.debug("Directory created:", bean);
-//        return bean;
-//    }
 }
