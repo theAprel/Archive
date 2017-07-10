@@ -80,9 +80,9 @@ public interface Insert {
     @SqlBatch("UPDATE files SET md5Verified=1 WHERE id= :id")
     public void updateFullyVerifiedFiles(@Bind("id") Iterator<String> fileIds);
     
-    @SqlBatch("UPDATE files SET dirParentId= :parent WHERE id= :id")
+    @SqlUpdate("UPDATE files SET dirParentId= :parent WHERE id= :id")
     public void updateParentOfFile(@BindBean FileBean file, @Bind("parent") String newParentId);
     
-    @SqlBatch("UPDATE directories SET dirParentId= :parent WHERE id= :id")
+    @SqlUpdate("UPDATE directories SET dirParentId= :parent WHERE id= :id")
     public void updateParentOfDirectory(@BindBean DirectoryBean dir, @Bind("parent") String newParentId);
 }
