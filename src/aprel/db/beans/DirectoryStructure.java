@@ -224,6 +224,35 @@ public class DirectoryStructure {
         return canAccept(Collections.singleton(file));
     }
     
+    public void moveTo(DirectoryStructure otherDirectory, Collection<DbFile> children) {
+        children.forEach(childFile -> {
+        if(!(files.contains(childFile) || directories.contains(db)))
+            throw new IllegalArgumentException("Not a child file: " + childFile);
+        });
+        if(!otherDirectory.canAccept(children))
+            throw new IllegalArgumentException("Other directory cannot accept these files");
+        if(!children.stream().allMatch(c -> c instanceof DirectoryBean 
+                || c instanceof FileBean))
+            throw new IllegalArgumentException("Unrecognized DBFile class");
+        children.forEach(child -> {
+            child.move(otherDirectory.thisDir, db);
+            if(child instanceof DirectoryBean) {
+                DirectoryBean d = (DirectoryBean) child;
+                directories.remove(d);
+                otherDirectory.directories.add(d);
+            }
+            else {
+                FileBean f = (FileBean) child;
+                files.remove(f);
+                otherDirectory.files.add(f);
+            }
+        });
+    }
+    
+    public void moveTo(DirectoryStructure otherDirectory, DbFile file) {
+        moveTo(otherDirectory, Collections.singleton(file));
+    }
+    
     /**
      * Inserts the files into the db, trusting that any missing directories have 
      * already been created externally.

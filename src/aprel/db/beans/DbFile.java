@@ -16,6 +16,8 @@
  */
 package aprel.db.beans;
 
+import aprel.ArchiveDatabase;
+
 /**
  *
  * @author Aprel
@@ -23,4 +25,13 @@ package aprel.db.beans;
 public interface DbFile {
     public String getName();
     public String getId();
+    /**
+     * Moves this file to a new parent, changing its internal properties and 
+     * database representation to reflect the new parent. However, this does not 
+     * perform any checks on the validity of this move with the file-structure 
+     * integrity; that onus falls on the code that calls this method. 
+     * @param newParent
+     * @param db 
+     */
+    public void move(DirectoryBean newParent, ArchiveDatabase db);
 }

@@ -16,6 +16,7 @@
  */
 package aprel.db.beans;
 
+import aprel.ArchiveDatabase;
 import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -182,6 +183,12 @@ public class FileBean implements DbFile {
     
     public boolean hasMediaData() {
         return media != null;
+    }
+
+    @Override
+    public void move(DirectoryBean newParent, ArchiveDatabase db) {
+        db.getInsertObject().updateParentOfFile(this, newParent.getId());
+        setParent(newParent);
     }
 
     @Override

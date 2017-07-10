@@ -96,6 +96,13 @@ public class DirectoryBean implements DbFile {
         String id = db.getInsertObject().createDirectory(getDirName(), getDirParentId());
         setId(id);
     }
+    
+    @Override
+    public void move(DirectoryBean newParent, ArchiveDatabase db) {
+        final String newParentId = newParent.getId();
+        db.getInsertObject().updateParentOfDirectory(this, newParentId);
+        setDirParentId(newParentId);
+    }
 
     @Override
     public int hashCode() {
