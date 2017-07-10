@@ -22,6 +22,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -209,8 +210,15 @@ public class DirectoryStructure {
             LOG.warn("Asked to add an empty collection of files to this directory");
             return;
         }
+        if(!canAccept(files))
+            throw new IllegalArgumentException("Duplicate names with files in directory " + thisDir);
+        //all tests are done; now queue the files to be added
+        newFiles.addAll(files);
+    }
+    
+    public boolean canAccept(Collection<? extends DbFile> files) {
         //any duplicate names in the collection provided?
-        Set<String> names = files.parallelStream().map(FileBean::getFilename)
+        Set<String> names = files.parallelStream().map(DbFile::getName)
                 .collect(Collectors.toSet());
         if(names.size() != files.size())
             throw new IllegalArgumentException(
@@ -222,11 +230,11 @@ public class DirectoryStructure {
         names.removeAll(directories.stream().map(DirectoryBean::getDirName)
                 .collect(Collectors.toSet()));
         //names is now useless; do not use it past the following conditional:
-        if(names.size() != startSize)
-            throw new IllegalArgumentException(
-                    "Duplicate names with files in directory " + thisDir);
-        //all tests are done; now queue the files to be added
-        newFiles.addAll(files);
+        return names.size() == startSize;
+    }
+    
+    public boolean canAccept(DbFile file) {
+        return canAccept(Collections.singleton(file));
     }
     
     /**
