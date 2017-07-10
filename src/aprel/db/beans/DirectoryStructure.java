@@ -226,7 +226,7 @@ public class DirectoryStructure {
     
     public void moveTo(DirectoryStructure otherDirectory, Collection<DbFile> children) {
         children.forEach(childFile -> {
-        if(!(files.contains(childFile) || directories.contains(db)))
+        if(!(files.contains(childFile) || directories.contains(childFile)))
             throw new IllegalArgumentException("Not a child file: " + childFile);
         });
         if(!otherDirectory.canAccept(children))
