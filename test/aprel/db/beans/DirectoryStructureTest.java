@@ -17,6 +17,10 @@
 package aprel.db.beans;
 
 import aprel.ArchiveDatabase;
+import aprel.jdbi.Delete;
+import aprel.jdbi.Insert;
+import aprel.jdbi.Query;
+import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.List;
 import org.junit.After;
@@ -25,12 +29,32 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  *
  * @author Aprel
  */
+@RunWith(MockitoJUnitRunner.class)
 public class DirectoryStructureTest {
+    
+    @Mock
+    ArchiveDatabase db;
+    
+    @Mock
+    Insert ins;
+    
+    @Mock
+    Delete delete;
+    
+    @Mock
+    Query query;
+    
+    DirectoryBean dir1, dir2, thisDir;
+    FileBean file1, file2, file3;
     
     public DirectoryStructureTest() {
     }
@@ -45,6 +69,42 @@ public class DirectoryStructureTest {
     
     @Before
     public void setUp() {
+        thisDir = new DirectoryBean();
+        thisDir.setDirName("thisone");
+        thisDir.setDirParentId("256");
+        thisDir.setId("512");
+        
+        dir1 = new DirectoryBean();
+        dir1.setDirName("firstdir");
+        dir1.setDirParentId(thisDir.getId());
+        dir1.setId("775");
+        
+        dir2 = new DirectoryBean();
+        dir2.setDirName("another");
+        dir2.setDirParentId(thisDir.getId());
+        dir2.setId("777");
+        
+        file1 = new FileBean();
+        file1.setCatalog("here");
+        file1.setDirParentId(thisDir.getId());
+        file1.setFilename("afile111");
+        file2 = new FileBean();
+        file2.setCatalog("here");
+        file2.setDirParentId(thisDir.getId());
+        file2.setFilename("afile121");
+        file3 = new FileBean();
+        file3.setCatalog("here");
+        file3.setDirParentId(thisDir.getId());
+        file3.setFilename("33afil");
+        
+        List<DirectoryBean> dirs = Lists.newArrayList(dir1, dir2);
+        List<FileBean> files = Lists.newArrayList(file1, file2, file3);
+        
+        when(db.getInsertObject()).thenReturn(ins);
+        when(db.getQueryObject()).thenReturn(query);
+        
+        when(query.getAllFilesInDirectoryBesidesOtherDirectories(thisDir.getId())).thenReturn(files);
+        when(query.getAllDirectoriesInDirectory(thisDir.getId())).thenReturn(dirs);
     }
     
     @After
@@ -57,13 +117,52 @@ public class DirectoryStructureTest {
     @Test
     public void testCreateDirectory() {
         System.out.println("createDirectory");
-        String name = "";
-        DirectoryStructure instance = null;
-        DirectoryBean expResult = null;
-        DirectoryBean result = instance.createDirectory(name);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        final String id = thisDir.getId();
+        
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        final String newName = "a new name no one has thought of before";
+        when(ins.createDirectory(newName, id)).thenReturn("1865");
+        DirectoryBean result = ds.createDirectory(newName);
+        assertTrue(result.getDirName().equals(newName));
+        assertTrue(result.getDirParentId().equals(id));
+        assertTrue(result.getId().equals("1865"));
+        verify(ins).createDirectory(newName, id);
+        verifyNoMoreInteractions(ins);
+        verifyZeroInteractions(delete);
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateDirectoryDuplicateFile() {
+        System.out.println("createDirectoryDuplicateFile");
+        
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        String oldName = file2.getFilename();
+        DirectoryBean result = ds.createDirectory(oldName);
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateDirectoryDuplicateDirName() {
+        System.out.println("createDirectoryDuplicateDirName");
+        
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        String oldName = dir2.getDirName();
+        DirectoryBean result = ds.createDirectory(oldName);
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateDirectoryEmptyString() {
+        System.out.println("createDirectoryEmptyString");
+        
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        ds.createDirectory("");
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateDirectoryNullString() {
+        System.out.println("createDirectoryNullString");
+        
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        ds.createDirectory(null);
     }
 
     /**
