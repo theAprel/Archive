@@ -17,7 +17,6 @@
 package aprel.db.beans;
 
 import aprel.ArchiveDatabase;
-import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -195,30 +194,6 @@ public class FileBean implements DbFile {
     public void rename(String newName, ArchiveDatabase db) {
         db.getInsertObject().renameFile(this, newName);
         setFilename(newName);
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 59 * hash + Objects.hashCode(this.md5);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final FileBean other = (FileBean) obj;
-        if(this.id == null || other.id == null)
-            throw new IllegalStateException("Comparing an instance with uninitialized ID");
-        return Objects.equals(this.id, other.id);
     }
 
     @Override

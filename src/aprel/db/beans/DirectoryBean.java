@@ -17,7 +17,6 @@
 package aprel.db.beans;
 
 import aprel.ArchiveDatabase;
-import java.util.Objects;
 import javax.xml.bind.annotation.XmlTransient;
 
 /**
@@ -108,32 +107,6 @@ public class DirectoryBean implements DbFile {
     public void rename(String newName, ArchiveDatabase db) {
         db.getInsertObject().renameDirectory(this, newName);
         setDirName(newName);
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 31 * hash + Objects.hashCode(this.id);
-        hash = 31 * hash + Objects.hashCode(this.dirName);
-        hash = 31 * hash + Objects.hashCode(this.dirParentId);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final DirectoryBean other = (DirectoryBean) obj;
-        if(this.id == null || other.id == null)
-            throw new IllegalStateException("Comparing an instance with uninitialized ID");
-        return Objects.equals(this.id, other.id);
     }
 
     @Override
