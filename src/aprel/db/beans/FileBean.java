@@ -34,11 +34,11 @@ import org.slf4j.LoggerFactory;
 public class FileBean implements DbFile {
     /*
     (Serial) id | filename | dirParentId | md5 | size | catalog
-    | BOOL onOptical | BOOL onLocalDisc | localStoragePath
+    | BOOL onOptical | BOOL md5Verified | BOOL onLocalDisc | localStoragePath
     */
     private String id, path, filename, dirParentId, md5, catalog, localStoragePath;
     private long size;
-    private boolean onOptical, onLocalDisc;
+    private boolean onOptical, onLocalDisc, md5Verified;
     private MediaMetadata media;
     private DirectoryBean parent;
     private boolean idHasBeenSet = false;
@@ -182,6 +182,15 @@ public class FileBean implements DbFile {
     
     public boolean hasMediaData() {
         return media != null;
+    }
+
+    public boolean isMd5Verified() {
+        return md5Verified;
+    }
+
+    @XmlTransient
+    public void setMd5Verified(boolean md5Verified) {
+        this.md5Verified = md5Verified;
     }
 
     @Override
