@@ -20,10 +20,13 @@ import aprel.db.beans.CatalogDoesNotExistException;
 import aprel.db.beans.Directories;
 import aprel.db.beans.FileBean;
 import aprel.db.beans.FilesRootContainer;
+import aprel.jdbi.Insert;
+import aprel.optical.Part;
 import java.io.File;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 import org.apache.commons.cli.CommandLine;
@@ -55,9 +58,11 @@ public class Inserter {
      */
     private static final String OPTION_CATALOG = "c";
     private static final String OPTION_FORCE_CREATE_CATALOG = "force-create-catalog";
+    private static final String OPTION_ADD_FROM_OPTICAL = "add-from-optical";
     private static final Logger LOG = LoggerFactory.getLogger(Inserter.class);
     
     private static String archivePath, localPath, catalog;
+    private static boolean addFromOptical;
     
     /*
     Things that must be checked prior to insertion into database:
@@ -76,6 +81,12 @@ public class Inserter {
                 .desc("the catalog in the archive to receive the files").numberOfArgs(1).build());
         options.addOption(Option.builder().longOpt(OPTION_FORCE_CREATE_CATALOG)
                 .numberOfArgs(0).build());
+        options.addOption(Option.builder().longOpt(OPTION_ADD_FROM_OPTICAL)
+                .desc("include this flag if the files are already on optical "
+                        + "media. This will add the optical to the catalog and "
+                        + "print the optical's serial number to standard out. "
+                        + "Write this number and the catalog name on the optical medium.")
+                .numberOfArgs(0).build());
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
         CommandLine cmd;
@@ -92,6 +103,7 @@ public class Inserter {
         localPath = cmd.getOptionValue(OPTION_INPUT_PATH);
         localPath = localPath.endsWith("/") ? localPath.substring(0, localPath.length()-1) : localPath;
         catalog = cmd.getOptionValue(OPTION_CATALOG);
+        addFromOptical = cmd.hasOption(OPTION_ADD_FROM_OPTICAL);
         String metadataFileLoc = localPath + (localPath.endsWith("/") ? "" : "/") + "METADATA.xml";
         File metadataFile = new File(metadataFileLoc);
         if(!metadataFile.exists()) {
@@ -104,8 +116,16 @@ public class Inserter {
         List<FileBean> l = files.getFiles();
         //files are not on optical; they are on local storage
         l.stream().forEach(bean ->  {
-            bean.setOnOptical(false);
-            bean.setOnLocalDisc(true);
+            if(addFromOptical) {
+                bean.setOnOptical(true);
+                bean.setMd5Verified(true);
+                bean.setOnLocalDisc(false);
+            }
+            else {
+                bean.setOnOptical(false);
+                bean.setMd5Verified(false);
+                bean.setOnLocalDisc(true);
+            }
             bean.setCatalog(catalog);
         });
         
@@ -153,6 +173,35 @@ public class Inserter {
         directories.addFiles(l, localPath);
         System.out.println(directories.getDirectoriesToBeCreated());
         directories.commitToDatabase();
+        
+        if(addFromOptical) {
+            //now, add the Parts to the database
+            //since these are files already burned to optical, they are each one single part
+            final Insert ins = db.getInsertObject();
+            final int newDiscNumber = db.getQueryObject()
+                    .getLastDiscNumberInSeries(catalog) + 1;
+            List<Part> parts = l.stream().map(file -> {
+                Part p = new Part(file);
+                p.setCatalog(catalog);
+                p.setDiscNumber(newDiscNumber);
+                p.setMd5(file.getMd5());
+                p.setMd5Verified(true);
+                p.setOnOptical(true);
+                p.setOrdinal(1);
+                p.setTotalInSet(1);
+                p.setPartFilename(file.getFilename());
+                p.setSize(file.getSize());
+                return p;
+            }).collect(Collectors.toList());
+            parts.forEach(p -> {
+                String id = ins.insertPart(p);
+                p.setId(id);
+            });
+            System.out.println("Label optical disc:");
+            System.out.println("Catalog: " + catalog);
+            System.out.println("Number: " + newDiscNumber);
+        }
+        
         db.close();
     }
 }
