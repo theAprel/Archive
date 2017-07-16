@@ -93,6 +93,10 @@ public class DirectoryStructure {
         return newDir;
     }
     
+    /**
+     * 
+     * @return all FileBeans and DirectoryBeans in this directory.
+     */
     public List<DbFile> getFiles() {
         if(!newFiles.isEmpty())
             throw new IllegalStateException("Files waiting to be committed to database");
@@ -102,6 +106,11 @@ public class DirectoryStructure {
         return fs;
     }
     
+    /**
+     * 
+     * @return list of strings of all names of directories and files in this 
+     * directory.
+     */
     public List<String> getNamesInDir() {
         List<DbFile> files = getFiles();
         return files.stream().map(DbFile::getName).collect(Collectors.toList());
@@ -122,6 +131,10 @@ public class DirectoryStructure {
         return new ArrayList<>(directories);
     }
     
+    /**
+     * 
+     * @return name of this directory
+     */
     public String getName() {
         return thisDir.getDirName();
     }
@@ -258,7 +271,7 @@ public class DirectoryStructure {
      * @param child
      * @param newName
      * @return false if there is already a file by name newName (makes no update 
-     * to the db; true otherwise.
+     * to the db); true otherwise.
      */
     public boolean rename(DbFile child, String newName) {
         if(!(files.contains(child) || directories.contains(child)))

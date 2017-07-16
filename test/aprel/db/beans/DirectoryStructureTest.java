@@ -21,14 +21,20 @@ import aprel.jdbi.Delete;
 import aprel.jdbi.Insert;
 import aprel.jdbi.Query;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
 import static org.mockito.Mockito.*;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -102,6 +108,7 @@ public class DirectoryStructureTest {
         
         when(db.getInsertObject()).thenReturn(ins);
         when(db.getQueryObject()).thenReturn(query);
+        when(db.getDeleteObject()).thenReturn(delete);
         
         when(query.getAllFilesInDirectoryBesidesOtherDirectories(thisDir.getId())).thenReturn(files);
         when(query.getAllDirectoriesInDirectory(thisDir.getId())).thenReturn(dirs);
@@ -171,12 +178,11 @@ public class DirectoryStructureTest {
     @Test
     public void testGetFiles() {
         System.out.println("getFiles");
-        DirectoryStructure instance = null;
-        List<DbFile> expResult = null;
-        List<DbFile> result = instance.getFiles();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        Set testContents = Sets.newHashSet(dir1, dir2, file1, file2, file3);
+        List<DbFile> files = ds.getFiles();
+        assertTrue(testContents.containsAll(files));
+        assertTrue(files.containsAll(testContents));
     }
 
     /**
@@ -185,12 +191,12 @@ public class DirectoryStructureTest {
     @Test
     public void testGetNamesInDir() {
         System.out.println("getNamesInDir");
-        DirectoryStructure instance = null;
-        List<String> expResult = null;
-        List<String> result = instance.getNamesInDir();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        Set<DbFile> testContents = Sets.newHashSet(dir1, dir2, file1, file2, file3);
+        Set<String> testNames = testContents.stream().map(DbFile::getName).collect(Collectors.toSet());
+        Collection<String> actual = ds.getNamesInDir();
+        assertTrue(actual.size() == testNames.size());
+        assertTrue(testNames.containsAll(actual));
     }
 
     /**
@@ -199,13 +205,23 @@ public class DirectoryStructureTest {
     @Test
     public void testGetInnerDirectoryByName() {
         System.out.println("getInnerDirectoryByName");
-        String name = "";
-        DirectoryStructure instance = null;
-        DirectoryBean expResult = null;
-        DirectoryBean result = instance.getInnerDirectoryByName(name);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        assertEquals(ds.getInnerDirectoryByName(dir1.getDirName()), dir1);
+        assertEquals(ds.getInnerDirectoryByName(dir2.getDirName()), dir2);
+    }
+    
+    @Test
+    public void testGetInnerDirectoryByNameGivenFile() {
+        System.out.println("getInnerDirectoryByNameGivenFile");
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        assertNull(ds.getInnerDirectoryByName(file1.getFilename()));
+    }
+    
+    @Test
+    public void testGetInnerDirectoryByNameDoesNotExist() {
+        System.out.println("getInnerDirectoryByNameNotExist");
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        assertNull(ds.getInnerDirectoryByName("doesnotexist"));
     }
 
     /**
@@ -214,12 +230,11 @@ public class DirectoryStructureTest {
     @Test
     public void testGetInnerDirectories() {
         System.out.println("getInnerDirectories");
-        DirectoryStructure instance = null;
-        List<DirectoryBean> expResult = null;
-        List<DirectoryBean> result = instance.getInnerDirectories();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        Collection<DirectoryBean> actual = ds.getInnerDirectories();
+        Set<DirectoryBean> expected = Sets.newHashSet(dir1, dir2);
+        assertTrue(expected.size() == actual.size());
+        assertTrue(actual.containsAll(expected));
     }
 
     /**
@@ -228,12 +243,9 @@ public class DirectoryStructureTest {
     @Test
     public void testGetName() {
         System.out.println("getName");
-        DirectoryStructure instance = null;
-        String expResult = "";
-        String result = instance.getName();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        String name = thisDir.getDirName();
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        assertEquals(name, ds.getName());
     }
 
     /**
@@ -242,13 +254,24 @@ public class DirectoryStructureTest {
     @Test
     public void testDeleteChildDirectory_String() {
         System.out.println("deleteChildDirectory");
-        String name = "";
-        DirectoryStructure instance = null;
-        boolean expResult = false;
-        boolean result = instance.deleteChildDirectory(name);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        FileBean f = new FileBean();
+        f.setId("5464");
+        f.setFilename("a real file");
+        when(query.getAllFilesInDirectoryBesidesOtherDirectories(dir1.getId()))
+                .thenReturn(Collections.singletonList(f));
+        DirectoryStructure shouldNotDelete = new DirectoryStructure(thisDir, db);
+        assertFalse(shouldNotDelete.deleteChildDirectory(dir1.getDirName()));
+        
+        //mock returns empty lists for unmocked methods
+        DirectoryStructure shouldDelete = new DirectoryStructure(thisDir, db);
+        assertTrue(shouldDelete.deleteChildDirectory(dir2.getDirName()));
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testDeleteChildDirectory_StringThrowsException() {
+        System.out.println("deleteChildDirectoryThrowsException");
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        ds.deleteChildDirectory("doesnotexist");
     }
 
     /**
@@ -257,13 +280,28 @@ public class DirectoryStructureTest {
     @Test
     public void testDeleteChildDirectory_DirectoryBean() {
         System.out.println("deleteChildDirectory");
-        DirectoryBean child = null;
-        DirectoryStructure instance = null;
-        boolean expResult = false;
-        boolean result = instance.deleteChildDirectory(child);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        FileBean f = new FileBean();
+        f.setId("5464");
+        f.setFilename("a real file");
+        when(query.getAllFilesInDirectoryBesidesOtherDirectories(dir1.getId()))
+                .thenReturn(Collections.singletonList(f));
+        DirectoryStructure shouldNotDelete = new DirectoryStructure(thisDir, db);
+        assertFalse(shouldNotDelete.deleteChildDirectory(dir1));
+        
+        //mock returns empty lists for unmocked methods
+        DirectoryStructure shouldDelete = new DirectoryStructure(thisDir, db);
+        assertTrue(shouldDelete.deleteChildDirectory(dir2));
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testDeleteChildDirectory_DirectoryBeanThrowsException() {
+        System.out.println("deleteChildDirectoryThrowsException");
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        DirectoryBean fake = new DirectoryBean();
+        fake.setDirName("fakefakefake");
+        fake.setDirParentId("1337");
+        fake.setId("1447");
+        ds.deleteChildDirectory(fake);
     }
 
     /**
@@ -272,112 +310,105 @@ public class DirectoryStructureTest {
     @Test
     public void testIsEmpty() {
         System.out.println("isEmpty");
-        DirectoryStructure instance = null;
-        boolean expResult = false;
-        boolean result = instance.isEmpty();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of sanitizePath method, of class DirectoryStructure.
-     */
-    @Test
-    public void testSanitizePath() {
-        System.out.println("sanitizePath");
-        String path = "";
-        String expResult = "";
-        String result = DirectoryStructure.sanitizePath(path);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of getCatalog method, of class DirectoryStructure.
-     */
-    @Test
-    public void testGetCatalog() throws Exception {
-        System.out.println("getCatalog");
-        String name = "";
-        ArchiveDatabase db = null;
-        DirectoryBean expResult = null;
-        DirectoryBean result = DirectoryStructure.getCatalog(name, db);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of addFiles method, of class DirectoryStructure.
-     */
-    @Test
-    public void testAddFiles() {
-        System.out.println("addFiles");
-        Collection<FileBean> files = null;
-        DirectoryStructure instance = null;
-        instance.addFiles(files);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        DirectoryStructure isNotEmpty = new DirectoryStructure(thisDir, db);
+        assertFalse(isNotEmpty.isEmpty());
+        
+        DirectoryStructure isEmpty = new DirectoryStructure(dir1, db);
+        assertTrue(isEmpty.isEmpty());
     }
 
     /**
      * Test of canAccept method, of class DirectoryStructure.
      */
     @Test
-    public void testCanAccept_Collection() {
+    public void testCanAccept() {
         System.out.println("canAccept");
-        Collection<? extends DbFile> files = null;
-        DirectoryStructure instance = null;
-        boolean expResult = false;
-        boolean result = instance.canAccept(files);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        FileBean f = new FileBean();
+        f.setFilename("a new name");
+        DirectoryBean d = new DirectoryBean();
+        d.setDirName("a new directory");
+        FileBean same = new FileBean();
+        same.setFilename(file2.getFilename());
+        Collection<DbFile> nope = Lists.newArrayList(f, d, same);
+        Collection<DbFile> yep = Lists.newArrayList(f, d);
+        
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        assertFalse(ds.canAccept(nope));
+        assertTrue(ds.canAccept(yep));
+        assertFalse(ds.canAccept(same));
+        assertTrue(ds.canAccept(f));
     }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testCanAcceptCollectionHasDups() {
+        System.out.println("canAcceptCollectionHasDups");
+        String name = "the same name";
+        FileBean f = new FileBean();
+        f.setFilename(name);
+        FileBean f2 = new FileBean();
+        f2.setFilename(name);
+        
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        assertFalse(ds.canAccept(Lists.newArrayList(f, f2)));
+    }
+    
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
-    /**
-     * Test of canAccept method, of class DirectoryStructure.
-     */
-    @Test
-    public void testCanAccept_DbFile() {
-        System.out.println("canAccept");
-        DbFile file = null;
-        DirectoryStructure instance = null;
-        boolean expResult = false;
-        boolean result = instance.canAccept(file);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
 
     /**
      * Test of moveTo method, of class DirectoryStructure.
      */
     @Test
-    public void testMoveTo_DirectoryStructure_Collection() {
+    public void testMoveTo_DirectoryStructure() {
         System.out.println("moveTo");
-        DirectoryStructure otherDirectory = null;
-        Collection<DbFile> children = null;
-        DirectoryStructure instance = null;
-        instance.moveTo(otherDirectory, children);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        DirectoryStructure biological = new DirectoryStructure(thisDir, db);
+        DirectoryBean beanAdoptiveDir = new DirectoryBean();
+        beanAdoptiveDir.setDirName("adopt");
+        beanAdoptiveDir.setId("143");
+        beanAdoptiveDir.setDirParentId("134");
+        FileBean sameNameAsFile2 = new FileBean();
+        sameNameAsFile2.setFilename(file2.getFilename());
+        sameNameAsFile2.setDirParentId(beanAdoptiveDir.getId());
+        when(query.getAllFilesInDirectoryBesidesOtherDirectories(beanAdoptiveDir.getId()))
+                .thenReturn(Lists.newArrayList(sameNameAsFile2));
+        DirectoryStructure adoptive = new DirectoryStructure(beanAdoptiveDir, db);
+        
+        final int originalSize = biological.getFiles().size();
+        List<DbFile> movedFiles = Lists.newArrayList(dir1, file1);
+        biological.moveTo(adoptive, movedFiles);
+        
+        movedFiles.forEach(f -> {
+            assertFalse(biological.getFiles().contains(f));
+            assertTrue(adoptive.getFiles().contains(f));
+            assertTrue(biological.getFiles().containsAll(Lists.newArrayList(dir2, file2, file3)));
+            assertEquals(originalSize - 2, biological.getFiles().size());
+            assertEquals(2+1, adoptive.getFiles().size());
+        });
+        
+        exception.expect(IllegalArgumentException.class);
+        biological.moveTo(adoptive, Lists.newArrayList(file2));
+        //TODO make sure relevant DB calls are made
     }
-
-    /**
-     * Test of moveTo method, of class DirectoryStructure.
-     */
+    
     @Test
-    public void testMoveTo_DirectoryStructure_DbFile() {
-        System.out.println("moveTo");
-        DirectoryStructure otherDirectory = null;
-        DbFile file = null;
-        DirectoryStructure instance = null;
-        instance.moveTo(otherDirectory, file);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void testMoveTo_DirectoryStructure_MoveIntoItself() {
+        DirectoryStructure biological = new DirectoryStructure(thisDir, db);
+        DirectoryStructure adoptive = new DirectoryStructure(dir1, db);
+        exception.expect(IllegalArgumentException.class);
+        biological.moveTo(adoptive, dir1);
+        //TODO make sure relevant DB calls are made
+    }
+    
+    @Test
+    public void testMoveTo_DirectoryStructure_NotTheParent() {
+        DirectoryStructure biological = new DirectoryStructure(thisDir, db);
+        DirectoryStructure adoptive = new DirectoryStructure(dir1, db);
+        FileBean unrelated = new FileBean();
+        unrelated.setDirParentId("989898");
+        exception.expect(IllegalArgumentException.class);
+        biological.moveTo(adoptive, unrelated);
+        //TODO make sure relevant DB calls are made
     }
 
     /**
@@ -386,42 +417,16 @@ public class DirectoryStructureTest {
     @Test
     public void testRename() {
         System.out.println("rename");
-        DbFile child = null;
-        String newName = "";
-        DirectoryStructure instance = null;
-        boolean expResult = false;
-        boolean result = instance.rename(child, newName);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of commitToDatabase method, of class DirectoryStructure.
-     */
-    @Test
-    public void testCommitToDatabase() {
-        System.out.println("commitToDatabase");
-        DirectoryStructure instance = null;
-        instance.commitToDatabase();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of getDir method, of class DirectoryStructure.
-     */
-    @Test
-    public void testGetDir() {
-        System.out.println("getDir");
-        String name = "";
-        String dirParentId = "";
-        ArchiveDatabase db = null;
-        DirectoryBean expResult = null;
-        DirectoryBean result = DirectoryStructure.getDir(name, dirParentId, db);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        assertTrue(ds.rename(dir1, "a totally novel directory name"));
+        assertTrue(ds.rename(file1, "a totally original file name"));
+        assertFalse(ds.rename(file2, file3.getFilename()));
+        assertFalse(ds.rename(file2, dir2.getName()));
+        FileBean unrelated = new FileBean();
+        unrelated.setDirParentId("48978788");
+        exception.expect(IllegalArgumentException.class);
+        ds.rename(unrelated, "ahahahahahahahah");
+        //TODO make sure relevant DB calls are made
     }
     
 }
