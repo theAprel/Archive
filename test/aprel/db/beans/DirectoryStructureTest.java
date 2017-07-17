@@ -265,6 +265,9 @@ public class DirectoryStructureTest {
         //mock returns empty lists for unmocked methods
         DirectoryStructure shouldDelete = new DirectoryStructure(thisDir, db);
         assertTrue(shouldDelete.deleteChildDirectory(dir2.getDirName()));
+        verify(delete).deleteDir(dir2);
+        verifyNoMoreInteractions(delete);
+        verifyZeroInteractions(ins);
     }
     
     @Test(expected = IllegalArgumentException.class)
@@ -291,6 +294,9 @@ public class DirectoryStructureTest {
         //mock returns empty lists for unmocked methods
         DirectoryStructure shouldDelete = new DirectoryStructure(thisDir, db);
         assertTrue(shouldDelete.deleteChildDirectory(dir2));
+        verify(delete).deleteDir(dir2);
+        verifyNoMoreInteractions(delete);
+        verifyZeroInteractions(ins);
     }
     
     @Test(expected = IllegalArgumentException.class)
@@ -386,18 +392,23 @@ public class DirectoryStructureTest {
             assertEquals(2+1, adoptive.getFiles().size());
         });
         
+        verify(ins).updateParentOfDirectory(dir1, beanAdoptiveDir.getId());
+        verify(ins).updateParentOfFile(file1, beanAdoptiveDir.getId());
+        verifyNoMoreInteractions(ins);
+        verifyZeroInteractions(delete);
+        
         exception.expect(IllegalArgumentException.class);
         biological.moveTo(adoptive, Lists.newArrayList(file2));
-        //TODO make sure relevant DB calls are made
     }
     
     @Test
     public void testMoveTo_DirectoryStructure_MoveIntoItself() {
         DirectoryStructure biological = new DirectoryStructure(thisDir, db);
         DirectoryStructure adoptive = new DirectoryStructure(dir1, db);
+        verifyZeroInteractions(ins);
+        verifyZeroInteractions(delete);
         exception.expect(IllegalArgumentException.class);
         biological.moveTo(adoptive, dir1);
-        //TODO make sure relevant DB calls are made
     }
     
     @Test
@@ -406,9 +417,10 @@ public class DirectoryStructureTest {
         DirectoryStructure adoptive = new DirectoryStructure(dir1, db);
         FileBean unrelated = new FileBean();
         unrelated.setDirParentId("989898");
+        verifyZeroInteractions(ins);
+        verifyZeroInteractions(delete);
         exception.expect(IllegalArgumentException.class);
         biological.moveTo(adoptive, unrelated);
-        //TODO make sure relevant DB calls are made
     }
 
     /**
@@ -422,11 +434,14 @@ public class DirectoryStructureTest {
         assertTrue(ds.rename(file1, "a totally original file name"));
         assertFalse(ds.rename(file2, file3.getFilename()));
         assertFalse(ds.rename(file2, dir2.getName()));
+        verify(ins).renameDirectory(dir1, "a totally novel directory name");
+        verify(ins).renameFile(file1, "a totally original file name");
+        verifyNoMoreInteractions(ins);
+        
         FileBean unrelated = new FileBean();
         unrelated.setDirParentId("48978788");
         exception.expect(IllegalArgumentException.class);
         ds.rename(unrelated, "ahahahahahahahah");
-        //TODO make sure relevant DB calls are made
     }
     
 }
