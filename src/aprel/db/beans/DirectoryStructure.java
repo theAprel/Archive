@@ -244,6 +244,11 @@ public class DirectoryStructure {
         });
         if(!otherDirectory.canAccept(children))
             throw new IllegalArgumentException("Other directory cannot accept these files");
+        children.stream().filter(c -> c instanceof DirectoryBean).forEach(c -> {
+            DirectoryBean d = (DirectoryBean) c;
+            if(d.getId().equals(otherDirectory.thisDir.getId()))
+                throw new IllegalArgumentException("Cannot move directory into itself");
+        });
         if(!children.stream().allMatch(c -> c instanceof DirectoryBean 
                 || c instanceof FileBean))
             throw new IllegalArgumentException("Unrecognized DBFile class");
