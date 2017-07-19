@@ -46,24 +46,32 @@ public class ConsoleInterface {
     private static final String ILLEGAL_NUMBER_OF_ARGUMENTS = "Illegal number of arguments";
     
     public static void main(String[] args) throws Exception {
+        db = ArchiveDatabase.createDangerousDefaultDatabase();
+        dirPath = new LinkedList<>();
+        List<DirectoryBean> catalogs = db.getCatalogs();
+        directoryNames = new HashMap<>();
+        if(args == null || args.length != 1) {
+            System.err.println("Illegal command line arguments. Must specify catalog to enter.");
+            System.out.println("Catalogs:");
+            System.out.println(catalogs.stream().map(DirectoryBean::getDirName)
+                    .collect(Collectors.joining(", ")));
+            return;
+        }
+        DirectoryBean selectedCatalog = catalogs.stream().filter(c -> c.getDirName()
+                .equals(args[0])).findAny().orElse(null);
+        if(selectedCatalog == null) {
+            System.err.println("I don't know any catalog by that name.");
+            return;
+        }
+        dirPath.add(new DirectoryStructure(selectedCatalog, db));
+        updateCompleters();
         Terminal term = TerminalBuilder.builder().system(true).build();
-        StringsCompleter commands = new StringsCompleter("cd", "exit", "rmdir");
+        StringsCompleter commands = new StringsCompleter("cd", "exit", "rmdir", "ls", "mkdir");
         final LineReader reader = LineReaderBuilder.builder()
                 .terminal(term)
                 .appName("Archive")
                 .completer(new ArgumentCompleter(commands, filesCompleter))
                 .build();
-        db = ArchiveDatabase.createDangerousDefaultDatabase();
-        dirPath = new LinkedList<>();
-        List<DirectoryBean> catalogs = db.getCatalogs();
-        directoryNames = new HashMap<>();
-        System.out.println("Catalogs:");
-        catalogs.forEach(bean -> {
-            String name = bean.getDirName();
-            directoryNames.put(name, bean);
-            filesCompleter.addCandidate(name);
-            System.out.println(name);
-        });
         String cmd = "";
         String line;
         try {
@@ -148,8 +156,8 @@ public class ConsoleInterface {
         if(enter == null)
             return "Cannot enter a null\n";
         if(enter.equals("..")) {
-            if(dirPath.isEmpty())
-                return "Already at the root";
+            if(dirPath.getLast() == dirPath.getFirst())
+                return "Already at the root\n";
             dirPath.removeLast();
         }
         else {
