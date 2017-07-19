@@ -56,7 +56,7 @@ public class Delegator {
             return;
         }
         final String[] passArgs = new String[args.length-1];
-        System.arraycopy(args, 1, args, 0, args.length-1);
+        System.arraycopy(args, 1, passArgs, 0, args.length-1);
         final Program called = Arrays.stream(Program.values()).filter(p -> 
                 p.getConsoleCommand().equals(args[0])).findAny().orElse(null);
         if(called == null) {
