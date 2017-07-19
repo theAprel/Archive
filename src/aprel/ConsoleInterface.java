@@ -20,6 +20,7 @@ import aprel.db.beans.DbFile;
 import aprel.db.beans.DirectoryBean;
 import aprel.db.beans.DirectoryStructure;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -41,32 +42,42 @@ import org.jline.terminal.TerminalBuilder;
  */
 public class ConsoleInterface {
     private final LinkedList<DirectoryStructure> dirPath;
-    private final DirectoryBean catalog;
+    private final DirectoryBean root;
     private final Map<String,DirectoryBean> directoryNames;
     private final ArchiveDatabase db;
+    private final boolean useConsole;
     private final LineReader reader;
     private final DbCompleter filesCompleter = new DbCompleter();
     private static final String ILLEGAL_NUMBER_OF_ARGUMENTS = "Illegal number of arguments";
     
-    public ConsoleInterface(DirectoryBean catalog, ArchiveDatabase database) throws IOException {
-        if(catalog.getDirParentId() != null)
-            throw new IllegalArgumentException("Not a catalog: " + catalog);
-        this.catalog = catalog;
+    public ConsoleInterface(DirectoryBean root, ArchiveDatabase database, boolean useConsole) throws IOException {
+        this.root = root;
         db = database;
         dirPath = new LinkedList<>();
         directoryNames = new HashMap<>();
-        dirPath.add(new DirectoryStructure(catalog, db));
-        updateCompleters();
-        Terminal term = TerminalBuilder.builder().system(true).build();
-        StringsCompleter commands = new StringsCompleter("cd", "exit", "rmdir", "ls", "mkdir");
-        reader = LineReaderBuilder.builder()
-                .terminal(term)
-                .appName("Archive")
-                .completer(new ArgumentCompleter(commands, filesCompleter))
-                .build();
+        dirPath.add(new DirectoryStructure(root, db));
+        this.useConsole = useConsole;
+        if(useConsole) {
+            updateCompleters();
+            Terminal term = TerminalBuilder.builder().system(true).build();
+            StringsCompleter commands = new StringsCompleter("cd", "exit", "rmdir", "ls", "mkdir");
+            reader = LineReaderBuilder.builder()
+                    .terminal(term)
+                    .appName("Archive")
+                    .completer(new ArgumentCompleter(commands, filesCompleter))
+                    .build();
+        }
+        else
+            reader = null;
     }
     
-    public void initiate() {
+    public ConsoleInterface(DirectoryBean root, ArchiveDatabase database) throws IOException {
+        this(root, database, true);
+    }
+    
+    public void readFromTerminal() {
+        if(!useConsole)
+            throw new IllegalStateException("UserInterface not initialized with useConsole = true");
         String cmd = "";
         String line;
         try {
@@ -81,7 +92,7 @@ public class ConsoleInterface {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        System.out.print(changeDirectories(parts[1]));
+                        System.out.print(cd(parts[1]));
                         break;
                     case "exit": break;
                     case "ls":
@@ -89,46 +100,21 @@ public class ConsoleInterface {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        List<DbFile> files = dirPath.getLast().getFiles();
-                        files.sort((DbFile o1, DbFile o2) -> {
-                            return o1.getName().compareTo(o2.getName());
-                        });
-                        files.forEach(f -> {
-                            System.out.print(f instanceof DirectoryBean ? "DIR  " : "FIL  ");
-                            System.out.println(f.getName());
-                        });
+                        ls();
                         break;
                     case "mkdir":
                         if(parts.length <= 1) {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        DirectoryStructure thisDir = dirPath.getLast();
-                        for(int i = 1; i < parts.length; i++) {
-                            String name = parts[i].trim();
-                            if(name.length() == 0) continue;
-                            DirectoryBean result = thisDir.createDirectory(name);
-                            directoryNames.put(name, result);
-                        }
-                        updateCompleters();
+                        mkdir(Arrays.copyOfRange(parts, 1, parts.length));
                         break;
                     case "rmdir":
                         if(parts.length <= 1) {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        for(int i = 1; i < parts.length; i++) {
-                            String name = parts[i];
-                            DirectoryBean dir = directoryNames.get(name);
-                            if(dir == null) {
-                                System.out.println("No directory by name " + name);
-                                continue;
-                            }
-                            boolean deleted = dirPath.getLast().deleteChildDirectory(dir);
-                            if(!deleted)
-                                System.out.println("Directory not empty. Not deleting " + name);
-                        }
-                        updateCompleters();
+                        rmdir(Arrays.copyOfRange(parts, 1, parts.length));
                         break;
                     default: System.out.println("Bad command.");
                 }
@@ -137,6 +123,42 @@ public class ConsoleInterface {
         catch(UserInterruptException interrupted) {
             System.out.println("Closing...");
         }
+    }
+    
+    public void ls() {
+        List<DbFile> files = dirPath.getLast().getFiles();
+        files.sort((DbFile o1, DbFile o2) -> {
+            return o1.getName().compareTo(o2.getName());
+        });
+        files.forEach(f -> {
+            System.out.print(f instanceof DirectoryBean ? "DIR  " : "FIL  ");
+            System.out.println(f.getName());
+        });
+    }
+    
+    public void mkdir(String[] names) {
+        DirectoryStructure thisDir = dirPath.getLast();
+        for (String name1 : names) {
+            String name = name1.trim();
+            if(name.length() == 0) continue;
+            DirectoryBean result = thisDir.createDirectory(name);
+            directoryNames.put(name, result);
+        }
+        updateCompleters();
+    }
+    
+    public void rmdir(String[] names) {
+        for(String name : names) {
+            DirectoryBean dir = directoryNames.get(name);
+            if(dir == null) {
+                System.out.println("No directory by name " + name);
+                continue;
+            }
+            boolean deleted = dirPath.getLast().deleteChildDirectory(dir);
+            if(!deleted)
+                System.out.println("Directory not empty. Not deleting " + name);
+        }
+        updateCompleters();
     }
     
     public static void main(String[] args) throws Exception {
@@ -157,7 +179,7 @@ public class ConsoleInterface {
         }
         ConsoleInterface cli = new ConsoleInterface(selectedCatalog, database);
         try {
-            cli.initiate();
+            cli.readFromTerminal();
         }
         finally {
             database.close();
@@ -169,7 +191,7 @@ public class ConsoleInterface {
      * @param enter
      * @return whether the change was successful
      */
-    private String changeDirectories(String enter) {
+    public String cd(String enter) {
         if(enter == null)
             return "Cannot enter a null\n";
         if(enter.equals("..")) {
