@@ -19,6 +19,7 @@ package aprel;
 import aprel.db.beans.DbFile;
 import aprel.db.beans.DirectoryBean;
 import aprel.db.beans.DirectoryStructure;
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -39,39 +40,33 @@ import org.jline.terminal.TerminalBuilder;
  * @author Aprel
  */
 public class ConsoleInterface {
-    private static LinkedList<DirectoryStructure> dirPath;
-    private static Map<String,DirectoryBean> directoryNames;
-    private static ArchiveDatabase db;
-    private static final DbCompleter filesCompleter = new DbCompleter();
+    private final LinkedList<DirectoryStructure> dirPath;
+    private final DirectoryBean catalog;
+    private final Map<String,DirectoryBean> directoryNames;
+    private final ArchiveDatabase db;
+    private final LineReader reader;
+    private final DbCompleter filesCompleter = new DbCompleter();
     private static final String ILLEGAL_NUMBER_OF_ARGUMENTS = "Illegal number of arguments";
     
-    public static void main(String[] args) throws Exception {
-        db = ArchiveDatabase.createDangerousDefaultDatabase();
+    public ConsoleInterface(DirectoryBean catalog, ArchiveDatabase database) throws IOException {
+        if(catalog.getDirParentId() != null)
+            throw new IllegalArgumentException("Not a catalog: " + catalog);
+        this.catalog = catalog;
+        db = database;
         dirPath = new LinkedList<>();
-        List<DirectoryBean> catalogs = db.getCatalogs();
         directoryNames = new HashMap<>();
-        if(args == null || args.length != 1) {
-            System.err.println("Illegal command line arguments. Must specify catalog to enter.");
-            System.out.println("Catalogs:");
-            System.out.println(catalogs.stream().map(DirectoryBean::getDirName)
-                    .collect(Collectors.joining(", ")));
-            return;
-        }
-        DirectoryBean selectedCatalog = catalogs.stream().filter(c -> c.getDirName()
-                .equals(args[0])).findAny().orElse(null);
-        if(selectedCatalog == null) {
-            System.err.println("I don't know any catalog by that name.");
-            return;
-        }
-        dirPath.add(new DirectoryStructure(selectedCatalog, db));
+        dirPath.add(new DirectoryStructure(catalog, db));
         updateCompleters();
         Terminal term = TerminalBuilder.builder().system(true).build();
         StringsCompleter commands = new StringsCompleter("cd", "exit", "rmdir", "ls", "mkdir");
-        final LineReader reader = LineReaderBuilder.builder()
+        reader = LineReaderBuilder.builder()
                 .terminal(term)
                 .appName("Archive")
                 .completer(new ArgumentCompleter(commands, filesCompleter))
                 .build();
+    }
+    
+    public void initiate() {
         String cmd = "";
         String line;
         try {
@@ -142,8 +137,30 @@ public class ConsoleInterface {
         catch(UserInterruptException interrupted) {
             System.out.println("Closing...");
         }
+    }
+    
+    public static void main(String[] args) throws Exception {
+        ArchiveDatabase database = ArchiveDatabase.createDangerousDefaultDatabase();
+        List<DirectoryBean> catalogs = database.getCatalogs();
+        if(args == null || args.length != 1) {
+            System.err.println("Illegal command line arguments. Must specify catalog to enter.");
+            System.out.println("Catalogs:");
+            System.out.println(catalogs.stream().map(DirectoryBean::getDirName)
+                    .collect(Collectors.joining(", ")));
+            return;
+        }
+        DirectoryBean selectedCatalog = catalogs.stream().filter(c -> c.getDirName()
+                .equals(args[0])).findAny().orElse(null);
+        if(selectedCatalog == null) {
+            System.err.println("I don't know any catalog by that name.");
+            return;
+        }
+        ConsoleInterface cli = new ConsoleInterface(selectedCatalog, database);
+        try {
+            cli.initiate();
+        }
         finally {
-            db.close();
+            database.close();
         }
     }
     
@@ -152,7 +169,7 @@ public class ConsoleInterface {
      * @param enter
      * @return whether the change was successful
      */
-    private static String changeDirectories(String enter) {
+    private String changeDirectories(String enter) {
         if(enter == null)
             return "Cannot enter a null\n";
         if(enter.equals("..")) {
@@ -171,7 +188,7 @@ public class ConsoleInterface {
         return "";
     }
     
-    private static void updateCompleters() {
+    private void updateCompleters() {
         DirectoryStructure ds = dirPath.getLast();
         directoryNames.clear();
         filesCompleter.clearCandidates();
