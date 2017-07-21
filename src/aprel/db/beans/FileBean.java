@@ -204,6 +204,12 @@ public class FileBean implements DbFile {
         db.getInsertObject().renameFile(this, newName);
         setFilename(newName);
     }
+    
+    public boolean queryMetadata(ArchiveDatabase db) {
+        if(getMedia() == null)
+            setMedia(db.getQueryObject().getMetadata(getId()));
+        return getMedia() != null;
+    }
 
     @Override
     public String toString() {
@@ -291,6 +297,29 @@ public class FileBean implements DbFile {
         @XmlElement( name = "ORIGINAL_BROADCAST_DATETIME" )
         public void setOriginalBroadcast(String originalBroadcast) {
             this.originalBroadcast = originalBroadcast;
+        }
+        
+        public String prettyPrint() {
+            StringBuilder builder = new StringBuilder();
+            if(getTitle() != null)
+                builder.append("Title: ").append(getTitle()).append("\n");
+            if(getSubtitle() != null)
+                builder.append("Subtitle: ").append(getSubtitle()).append("\n");
+            if(getDescription() != null)
+                builder.append("Description: ").append(getDescription()).append("\n");
+            if(getChannel() != null)
+                builder.append("Channel: ").append(getChannel()).append("\n");
+            if(getOriginalRuntime() != null)
+                builder.append("Original Runtime: ").append(getOriginalRuntime()).append("\n");
+            if(getDuration100Nanos() != null)
+                builder.append("Duration (100-ns units): ").append(getDuration100Nanos())
+                        .append("\n");
+            if(getDuration() != null)
+                builder.append("Duration (readable): ").append(getDuration()).append("\n");
+            if(getOriginalBroadcast() != null)
+                builder.append("Original Broadcast Date: ").append(getOriginalBroadcast())
+                        .append("\n");
+            return builder.toString();
         }
 
         @Override

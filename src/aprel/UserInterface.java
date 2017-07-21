@@ -42,6 +42,7 @@ import org.jline.reader.ParsedLine;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import aprel.db.beans.FileBean.MediaMetadata;
 
 /**
  *
@@ -57,13 +58,13 @@ public class UserInterface {
     private static final String ILLEGAL_NUMBER_OF_ARGUMENTS = "Illegal number of arguments";
     
     public static final String[] COMMANDS = new String[] {
-        "cd", "exit", "rmdir", "ls", "mkdir", "mv", "rename"
+        "cd", "exit", "rmdir", "ls", "mkdir", "mv", "rename", "metadata"
     };
     public static final String[] DIRECTORY_COMMANDS = new String[] {
         "cd", "rmdir", "mv", "rename"
     };
     public static final String[] FILE_COMMANDS = new String[] {
-        "mv", "rename"
+        "mv", "rename", "metadata"
     };
     
     public UserInterface(DirectoryBean catalog, ArchiveDatabase database, boolean useConsole) throws IOException {
@@ -159,6 +160,22 @@ public class UserInterface {
                         if(!mv(filesCompleter.globForNames(args.get(1)), args.get(2))) {
                             System.out.println("Could not move file(s).");
                         }
+                        break;
+                    case "metadata":
+                        if(args.length <= 1) {
+                            System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
+                            break;
+                        }
+                        args.getArgumentsAfterCommand().stream()
+                                .map(arg -> filesCompleter.globForFiles(arg))
+                                .flatMap(l -> l.stream()).filter(f -> f instanceof FileBean)
+                                .map(f -> (FileBean) f).filter(f -> f.queryMetadata(db))
+                                .forEach(f -> {
+                                    System.out.println(f.getFilename()+":");
+                                    System.out.println(f.getMedia().prettyPrint());
+                                    System.out.println();
+                                });
+                        
                         break;
                     case "printargs": //debugging command for arg parser
                         System.out.println("Command:" + args.get(0));

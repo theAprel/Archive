@@ -20,6 +20,7 @@ import aprel.db.beans.DirectoryBean;
 import aprel.db.beans.FileBean;
 import aprel.jdbi.beanmappers.DirectoryBeanMapper;
 import aprel.jdbi.beanmappers.FileBeanMapper;
+import aprel.jdbi.beanmappers.MetadataMapper;
 import aprel.jdbi.beanmappers.PartMapper;
 import aprel.optical.Part;
 import java.util.List;
@@ -84,5 +85,10 @@ public interface Query {
     @SqlQuery("SELECT * FROM parts WHERE md5Verified")
     @Mapper(PartMapper.class)
     public List<Part> getMd5VerifiedParts();
+    
+    //METADATA QUERIES
+    @SqlQuery("SELECT * FROM metadata WHERE fileId= :id")
+    @Mapper(MetadataMapper.class)
+    public FileBean.MediaMetadata getMetadata(@Bind("id") String fileId);
     
 }
