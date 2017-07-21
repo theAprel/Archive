@@ -88,7 +88,9 @@ public class Delegator {
         System.out.println();
         System.out.println(Program.ISOIFY.getConsoleCommand());
         System.out.println("Queries database for files not yet on optical media and prepares burnable images containing these files");
+        System.out.println();
         System.out.println("(this is where the user burns the images to optical media)");
+        System.out.println();
         System.out.println(Program.VERIFY.getConsoleCommand());
         System.out.println("Performs MD5-checksum verification of the files on optical media and marks the files for local deletion in the database upon successful verification; this step need not be executed on the machine that stores the local copies of the files");
         System.out.println();
