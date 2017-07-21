@@ -444,4 +444,11 @@ public class DirectoryStructureTest {
         ds.rename(unrelated, "ahahahahahahahah");
     }
     
+    @Test
+    public void testRename_NewNameContainsIllegalCharacters() {
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        exception.expect(IllegalArgumentException.class);
+        ds.rename(dir1, "a/newname");
+    }
+    
 }
