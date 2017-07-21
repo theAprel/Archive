@@ -282,6 +282,9 @@ public class DirectoryStructure {
      * to the db); true otherwise.
      */
     public boolean rename(DbFile child, String newName) {
+        newName = newName.trim();
+        if(newName.length() == 0)
+            throw new IllegalArgumentException("Name must contain at least 1 non-whitespace character");
         for(char c : ILLEGAL_CHARACTERS) {
             if(newName.contains(c + ""))
                 throw new IllegalArgumentException("Name cannot contain " + c); 
