@@ -91,4 +91,7 @@ public interface Insert {
     
     @SqlUpdate("UPDATE directories SET dirName= :rename WHERE id= :id")
     public void renameDirectory(@BindBean DirectoryBean dir, @Bind("rename") String newName);
+    
+    @SqlUpdate("UPDATE files SET onLocalDisc = 0, localStoragePath = NULL WHERE id= :id")
+    public void updateNoLongerOnLocalStorage(@BindBean FileBean file);
 }

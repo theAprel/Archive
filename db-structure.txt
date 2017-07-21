@@ -4,6 +4,7 @@ Table: files
 
 Note: files.onOptical == true is NOT sufficient to assume that the file is backed up. This value just tells the Archive that the file's parts are delegated to be written to optical. A file can be deleted from local storage only when there is a filepart at each ordinal for totalInSet with parentFileId == (this file) id.
 Verifier handles this logic by checking all parts and then setting md5Verified to true if totalInSet number of parts are md5Verified. Therefore, if md5Verified is true for a file, that file has been fully backed up and is safe to delete locally.
+After a file has been removed with the Reclaimer class, a local copy retrieved from concatenation of the parts may be added back into the database by setting onLocalDisc to true and localStoragePath to the new local path. This way, these retrieved files can be automatically reclaimed again on the next run of Reclaimer (or exclude their path with --keep to keep the local copy longer).
 
 
 Table: directories

@@ -77,6 +77,10 @@ public interface Query {
     @Mapper(FileBeanMapper.class)
     public List<FileBean> getAllFilesNotMd5Verified();
     
+    @SqlQuery("SELECT * FROM files WHERE md5Verified AND onLocalDisc")
+    @Mapper(FileBeanMapper.class)
+    public List<FileBean> getAllVerifiedFilesOnDisc();
+    
     //PART-RELATED QUERIES
     @SqlQuery("SELECT MAX(discNumber) FROM parts WHERE catalog= :cat")
     public int getLastDiscNumberInSeries(@Bind("cat") String catalog);

@@ -31,7 +31,8 @@ public class Delegator {
         INSERTER("Inserter", Inserter.class),
         CONSOLE("Console", UserInterface.class),
         ISOIFY("Isoify", Isoifier.class),
-        VERIFY("Verify", Verifier.class);
+        VERIFY("Verify", Verifier.class),
+        RECLAIM("Reclaim", Reclaimer.class);
         
         private final String consoleCommand;
         private final Class<?> programClass;
@@ -70,6 +71,7 @@ public class Delegator {
             case CONSOLE: UserInterface.main(passArgs); break;
             case ISOIFY: Isoifier.main(passArgs); break;
             case VERIFY: Verifier.main(passArgs); break;
+            case RECLAIM: Reclaimer.main(passArgs); break;
         }
     }
     
@@ -93,6 +95,9 @@ public class Delegator {
         System.out.println();
         System.out.println(Program.VERIFY.getConsoleCommand());
         System.out.println("Performs MD5-checksum verification of the files on optical media and marks the files for local deletion in the database upon successful verification; this step need not be executed on the machine that stores the local copies of the files");
+        System.out.println();
+        System.out.println(Program.RECLAIM.getConsoleCommand());
+        System.out.println("Deletes files from local storage that have been successfully verified on optical media");
         System.out.println();
         System.out.println();
         System.out.println("Utilities:");
