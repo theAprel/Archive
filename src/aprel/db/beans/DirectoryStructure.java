@@ -21,6 +21,7 @@ import aprel.jdbi.Insert;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -48,6 +49,8 @@ public class DirectoryStructure {
     private static final Table<String,String,DirectoryBean> CACHE_DIR = HashBasedTable.create();
     
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryStructure.class);
+    
+    public static final char[] ILLEGAL_CHARACTERS = new char[] {'/'};
     
     public DirectoryStructure(DirectoryBean dir, ArchiveDatabase db) {
         this.db = db;
@@ -279,6 +282,10 @@ public class DirectoryStructure {
      * to the db); true otherwise.
      */
     public boolean rename(DbFile child, String newName) {
+        for(char c : ILLEGAL_CHARACTERS) {
+            if(newName.contains(c + ""))
+                throw new IllegalArgumentException("Name cannot contain " + c); 
+        }
         if(!(files.contains(child) || directories.contains(child)))
             throw new IllegalArgumentException("Not a child file: " + child);
         if(getNamesInDir().contains(newName))
