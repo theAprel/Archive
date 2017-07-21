@@ -16,7 +16,9 @@
  */
 package aprel;
 
+import aprel.db.beans.CatalogDoesNotExistException;
 import aprel.db.beans.DbFile;
+import aprel.db.beans.Directories;
 import aprel.db.beans.DirectoryBean;
 import aprel.db.beans.DirectoryStructure;
 import aprel.db.beans.FileBean;
@@ -24,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -46,7 +49,7 @@ import org.jline.terminal.TerminalBuilder;
  */
 public class UserInterface {
     private final LinkedList<DirectoryStructure> dirPath;
-    private final DirectoryBean root;
+    private final DirectoryBean catalog;
     private final ArchiveDatabase db;
     private final boolean useConsole;
     private final LineReader reader;
@@ -63,11 +66,11 @@ public class UserInterface {
         "mv", "rename"
     };
     
-    public UserInterface(DirectoryBean root, ArchiveDatabase database, boolean useConsole) throws IOException {
-        this.root = root;
+    public UserInterface(DirectoryBean catalog, ArchiveDatabase database, boolean useConsole) throws IOException {
+        this.catalog = catalog;
         db = database;
         dirPath = new LinkedList<>();
-        dirPath.add(new DirectoryStructure(root, db));
+        dirPath.add(new DirectoryStructure(catalog, db));
         this.useConsole = useConsole;
         if(useConsole) {
             updateCompleters();
@@ -77,6 +80,7 @@ public class UserInterface {
                     .appName("Archive")
                     .completer(filesCompleter)
                     .build();
+            reader.unsetOpt(LineReader.Option.GLOB_COMPLETE);
         }
         else
             reader = null;
@@ -139,8 +143,27 @@ public class UserInterface {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        if(!rename(args.get(1), args.get(2)))
-                            System.out.println("There is already a file by that name.");
+                        try {
+                            if(!rename(args.get(1), args.get(2)))
+                                System.out.println("There is already a file by that name.");
+                        }
+                        catch(IllegalArgumentException ex) {
+                            System.out.println("Bad argument: " + ex.getMessage());
+                        }
+                        break;
+                    case "mv":
+                        if(args.length != 3) {
+                            System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
+                            break;
+                        }
+                        if(!mv(filesCompleter.globForNames(args.get(1)), args.get(2))) {
+                            System.out.println("Could not move file(s).");
+                        }
+                        break;
+                    case "printargs": //debugging command for arg parser
+                        System.out.println("Command:" + args.get(0));
+                        System.out.println("Arguments:\n" + args.getArgumentsAfterCommand()
+                                .stream().collect(Collectors.joining("\n")));
                         break;
                     default: System.out.println("Bad command.");
                 }
@@ -228,6 +251,34 @@ public class UserInterface {
                 System.out.println("Directory not empty. Not deleting " + name);
         }
         updateCompleters();
+    }
+    
+    public boolean mv(List<String> files, String pathToNewParentFromRoot) {
+        Directories directoriesPath;
+        try {
+        directoriesPath = new Directories(catalog.getDirName(), 
+                pathToNewParentFromRoot, db);
+        }
+        catch(CatalogDoesNotExistException ex) {
+            throw new IllegalStateException(ex);
+        }
+        DirectoryBean newBeanParent = directoriesPath.getPath().getLast();
+        DirectoryStructure newParent = new DirectoryStructure(newBeanParent, db);
+        List<DbFile> fileAndDirBeans = files.stream().map(f -> 
+                filesCompleter.getByName(f)).collect(Collectors.toList());
+        List<DbFile> cannotAccept = fileAndDirBeans.stream().filter(
+                f -> !newParent.canAccept(f)).collect(Collectors.toList());
+        if(!cannotAccept.isEmpty()) {
+            System.out.println("Cannot move because of duplicates of the following"
+                    + " filenames in the new parent directory:\n" + cannotAccept.stream()
+                            .map(DbFile::getName).collect(Collectors.joining("\n")));
+            return false;
+        }
+        else {
+            DirectoryStructure thisDir = dirPath.getLast();
+            thisDir.moveTo(newParent, fileAndDirBeans);
+            return true;
+        }
     }
     
     public boolean rename(String file, String newName) {
@@ -319,12 +370,49 @@ public class UserInterface {
             files.forEach(f -> add(f));
         }
         
+        /**
+         * 
+         * @param nameWithAsterisk
+         * @return an ordered-alphabetically list containing all files and directories 
+         * whose names match the String provided. If the String does not contain 
+         * an asterisk, returns a singleton list containing the file by that exact 
+         * name, or an empty list otherwise.
+         */
+        public List<DbFile> globForFiles(String nameWithAsterisk) {
+            if(!nameWithAsterisk.contains("*")) {
+                DbFile file = getByName(nameWithAsterisk);
+                if(file == null) return new ArrayList<>();
+                else return Collections.singletonList(file);
+            }
+            List<DbFile> list = new ArrayList<>();
+            String prefix = nameWithAsterisk.substring(0, nameWithAsterisk.indexOf("*"));
+            Map<String, DbFile> allFiles = new HashMap<>(filenames);
+            allFiles.putAll(directoryNames);
+            allFiles.forEach((name, file) -> {
+                if(name.startsWith(prefix))
+                    list.add(file);
+            });
+            list.sort((f1, f2) -> {return f1.getName().compareTo(f2.getName());});
+            return list;
+        }
+        
+        public List<String> globForNames(String nameWithAsterisk) {
+            return globForFiles(nameWithAsterisk).stream().map(DbFile::getName)
+                    .collect(Collectors.toList());
+        }
+        
         public DirectoryBean getDirectoryByName(String name) {
             return directoryNames.get(name);
         }
         
         public FileBean getFileByName(String name) {
             return filenames.get(name);
+        }
+        
+        public DbFile getByName(String name) {
+            DbFile file = filenames.get(name);
+            if(file != null) return file;
+            else return directoryNames.get(name);
         }
 
         @Override

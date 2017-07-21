@@ -79,6 +79,10 @@ public class Directories {
         }
     }
     
+    public LinkedList<DirectoryBean> getPath() {
+        return new LinkedList<>(basePath);
+    }
+    
     /**
      * Adds files to the end of this <code>Directories</code>' base path.
      * @param files 
