@@ -29,7 +29,7 @@ public class Delegator {
     private static enum Program {
         FILEWALKER("FileWalker", FileWalker.class),
         INSERTER("Inserter", Inserter.class),
-        CONSOLE("Console", ConsoleInterface.class),
+        CONSOLE("Console", UserInterface.class),
         ISOIFY("Isoify", Isoifier.class),
         VERIFY("Verify", Verifier.class);
         
@@ -67,7 +67,7 @@ public class Delegator {
         switch(called) {
             case FILEWALKER: FileWalker.main(passArgs); break;
             case INSERTER: Inserter.main(passArgs); break;
-            case CONSOLE: ConsoleInterface.main(passArgs); break;
+            case CONSOLE: UserInterface.main(passArgs); break;
             case ISOIFY: Isoifier.main(passArgs); break;
             case VERIFY: Verifier.main(passArgs); break;
         }

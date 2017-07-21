@@ -44,7 +44,7 @@ import org.jline.terminal.TerminalBuilder;
  *
  * @author Aprel
  */
-public class ConsoleInterface {
+public class UserInterface {
     private final LinkedList<DirectoryStructure> dirPath;
     private final DirectoryBean root;
     private final ArchiveDatabase db;
@@ -63,7 +63,7 @@ public class ConsoleInterface {
         "mv", "rename"
     };
     
-    public ConsoleInterface(DirectoryBean root, ArchiveDatabase database, boolean useConsole) throws IOException {
+    public UserInterface(DirectoryBean root, ArchiveDatabase database, boolean useConsole) throws IOException {
         this.root = root;
         db = database;
         dirPath = new LinkedList<>();
@@ -82,7 +82,7 @@ public class ConsoleInterface {
             reader = null;
     }
     
-    public ConsoleInterface(DirectoryBean root, ArchiveDatabase database) throws IOException {
+    public UserInterface(DirectoryBean root, ArchiveDatabase database) throws IOException {
         this(root, database, true);
     }
     
@@ -255,7 +255,7 @@ public class ConsoleInterface {
             System.err.println("I don't know any catalog by that name.");
             return;
         }
-        ConsoleInterface cli = new ConsoleInterface(selectedCatalog, database);
+        UserInterface cli = new UserInterface(selectedCatalog, database);
         try {
             cli.readFromTerminal();
         }
