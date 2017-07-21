@@ -299,6 +299,7 @@ public class UserInterface {
         else {
             DirectoryStructure thisDir = dirPath.getLast();
             thisDir.moveTo(newParent, fileAndDirBeans);
+            updateCompleters();
             return true;
         }
     }
