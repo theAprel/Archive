@@ -452,6 +452,13 @@ public class DirectoryStructureTest {
     }
     
     @Test
+    public void testRename_NewNameContainsIllegalCharacters2() {
+        DirectoryStructure ds = new DirectoryStructure(thisDir, db);
+        exception.expect(IllegalArgumentException.class);
+        ds.rename(dir1, "a*newname");
+    }
+    
+    @Test
     public void testRename_NewNameContainsOnlyWhiteSpace() {
         DirectoryStructure ds = new DirectoryStructure(thisDir, db);
         exception.expect(IllegalArgumentException.class);

@@ -50,7 +50,7 @@ public class DirectoryStructure {
     
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryStructure.class);
     
-    public static final char[] ILLEGAL_CHARACTERS = new char[] {'/'};
+    public static final char[] ILLEGAL_CHARACTERS = new char[] {'/', '*'};
     
     public DirectoryStructure(DirectoryBean dir, ArchiveDatabase db) {
         this.db = db;
