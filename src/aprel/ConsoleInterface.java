@@ -126,6 +126,14 @@ public class ConsoleInterface {
                         }
                         rmdir(Arrays.copyOfRange(parts, 1, parts.length));
                         break;
+                    case "rename":
+                        if(parts.length != 3) {
+                            System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
+                            break;
+                        }
+                        if(!rename(parts[1], parts[2]))
+                            System.out.println("There is already a file by that name.");
+                        break;
                     default: System.out.println("Bad command.");
                 }
             }
@@ -169,6 +177,15 @@ public class ConsoleInterface {
                 System.out.println("Directory not empty. Not deleting " + name);
         }
         updateCompleters();
+    }
+    
+    public boolean rename(String file, String newName) {
+        DbFile f = filesCompleter.getFileByName(file);
+        if(f == null) f = filesCompleter.getDirectoryByName(file);
+        DirectoryStructure thisDir = dirPath.getLast();
+        boolean toReturn = thisDir.rename(f, newName);
+        if(toReturn) updateCompleters();
+        return toReturn;
     }
     
     public static void main(String[] args) throws Exception {
@@ -253,6 +270,10 @@ public class ConsoleInterface {
         
         public DirectoryBean getDirectoryByName(String name) {
             return directoryNames.get(name);
+        }
+        
+        public FileBean getFileByName(String name) {
+            return filenames.get(name);
         }
 
         @Override
