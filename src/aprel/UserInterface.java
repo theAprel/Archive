@@ -58,13 +58,14 @@ public class UserInterface {
     private static final String ILLEGAL_NUMBER_OF_ARGUMENTS = "Illegal number of arguments";
     
     public static final String[] COMMANDS = new String[] {
-        "cd", "exit", "rmdir", "ls", "mkdir", "mv", "rename", "metadata", "lsdir", "lsd"
+        "cd", "exit", "rmdir", "ls", "mkdir", "mv", "rename", "metadata", "lsdir", 
+        "lsd", "du"
     };
     public static final String[] DIRECTORY_COMMANDS = new String[] {
         "cd", "rmdir", "mv", "rename"
     };
     public static final String[] FILE_COMMANDS = new String[] {
-        "mv", "rename", "metadata"
+        "mv", "rename", "metadata", "du"
     };
     
     public UserInterface(DirectoryBean catalog, ArchiveDatabase database, boolean useConsole) throws IOException {
@@ -178,6 +179,20 @@ public class UserInterface {
                                     System.out.println();
                                 });
                         
+                        break;
+                    case "du":
+                        if(args.length > 2) {
+                            System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
+                            break;
+                        }
+                        if(args.length == 1) { //list size of all files in this dir
+                            System.out.println(size());
+                        }
+                        else { //size of particular file
+                            long fileSize = size(args.get(1));
+                            if(fileSize == -1L) System.out.println("Not a file");
+                            else System.out.println(fileSize);
+                        }
                         break;
                     case "printargs": //debugging command for arg parser
                         System.out.println("Command:" + args.get(0));
@@ -313,6 +328,21 @@ public class UserInterface {
         return toReturn;
     }
     
+    public long size() {
+        return filesCompleter.getFiles().stream().mapToLong(FileBean::getSize).sum();
+    }
+    
+    /**
+     * 
+     * @param filename
+     * @return the size of the file, or -1 if no file by such name
+     */
+    public long size(String filename) {
+        FileBean f = filesCompleter.getFileByName(filename);
+        if(f == null) return -1L;
+        else return f.getSize();
+    }
+    
     public static void main(String[] args) throws Exception {
         ArchiveDatabase database = ArchiveDatabase.createDangerousDefaultDatabase();
         List<DirectoryBean> catalogs = database.getCatalogs();
@@ -391,6 +421,10 @@ public class UserInterface {
         public void update(Collection<DbFile> files) {
             clear();
             files.forEach(f -> add(f));
+        }
+        
+        public Collection<FileBean> getFiles() {
+            return filenames.values();
         }
         
         /**
