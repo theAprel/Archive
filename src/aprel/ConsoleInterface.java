@@ -21,6 +21,7 @@ import aprel.db.beans.DirectoryBean;
 import aprel.db.beans.DirectoryStructure;
 import aprel.db.beans.FileBean;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -94,44 +95,51 @@ public class ConsoleInterface {
             while(!cmd.equals("exit")) {
                 line = reader.readLine(dirPath.stream()
                         .map(DirectoryStructure::getName).collect(Collectors.joining("/")) + ">");
-                final String[] parts = line.split(" ");
-                cmd = parts[0];
+                Arguments args;
+                try {
+                    args = new Arguments(line);
+                }
+                catch(IllegalArgumentException ex) {
+                    System.out.println(ex.getMessage());
+                    continue;
+                }
+                cmd = args.get(0);
                 switch(cmd) {
                     case "cd":
-                        if(parts.length != 2) {
+                        if(args.length != 2) {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        System.out.print(cd(parts[1]));
+                        System.out.print(cd(args.get(1)));
                         break;
                     case "exit": break;
                     case "ls":
-                        if(parts.length != 1) {
+                        if(args.length != 1) {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
                         ls();
                         break;
                     case "mkdir":
-                        if(parts.length <= 1) {
+                        if(args.length <= 1) {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        mkdir(Arrays.copyOfRange(parts, 1, parts.length));
+                        mkdir(args.getArgumentsAfterCommand());
                         break;
                     case "rmdir":
-                        if(parts.length <= 1) {
+                        if(args.length <= 1) {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        rmdir(Arrays.copyOfRange(parts, 1, parts.length));
+                        rmdir(args.getArgumentsAfterCommand());
                         break;
                     case "rename":
-                        if(parts.length != 3) {
+                        if(args.length != 3) {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        if(!rename(parts[1], parts[2]))
+                        if(!rename(args.get(1), args.get(2)))
                             System.out.println("There is already a file by that name.");
                         break;
                     default: System.out.println("Bad command.");
@@ -141,6 +149,49 @@ public class ConsoleInterface {
         catch(UserInterruptException interrupted) {
             System.out.println("Closing...");
         }
+    }
+    
+    private static class Arguments {
+        private final String line;
+        private final List<String> arguments;
+        public final int length;
+        
+        public Arguments(String line) {
+            this.line = line;
+            arguments = new ArrayList<>();
+            String[] words = line.split(" ");
+            for(int i = 0; i < words.length; i++) {
+                String word = words[i];
+                if(word.startsWith("\"")) {
+                    StringBuilder builder = new StringBuilder(word.substring(1));
+                    String nextWord;
+                    do {
+                        try {
+                            nextWord = words[++i];
+                        }
+                        catch(ArrayIndexOutOfBoundsException ex) {
+                            throw new IllegalArgumentException("Bad quote syntax", ex);
+                        }
+                        builder.append(" ").append(nextWord);
+                    } while(!nextWord.endsWith("\""));
+                    //remove trailing quote
+                    arguments.add(builder.substring(0, builder.length() - 1));
+                }
+                else if(word.contains("\""))
+                    throw new IllegalArgumentException("Bad quote syntax");
+                else arguments.add(word);
+            }
+            length = arguments.size();
+        }
+        
+        public String get(int index) {
+            return arguments.get(index);
+        }
+        
+        public List<String> getArgumentsAfterCommand() {
+            return new ArrayList<>(arguments.subList(1, length));
+        }
+
     }
     
     public void ls() {
@@ -154,7 +205,7 @@ public class ConsoleInterface {
         });
     }
     
-    public void mkdir(String[] names) {
+    public void mkdir(List<String> names) {
         DirectoryStructure thisDir = dirPath.getLast();
         for (String name1 : names) {
             String name = name1.trim();
@@ -165,7 +216,7 @@ public class ConsoleInterface {
         updateCompleters();
     }
     
-    public void rmdir(String[] names) {
+    public void rmdir(List<String> names) {
         for(String name : names) {
             DirectoryBean dir = filesCompleter.getDirectoryByName(name);
             if(dir == null) {
