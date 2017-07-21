@@ -58,7 +58,7 @@ public class UserInterface {
     private static final String ILLEGAL_NUMBER_OF_ARGUMENTS = "Illegal number of arguments";
     
     public static final String[] COMMANDS = new String[] {
-        "cd", "exit", "rmdir", "ls", "mkdir", "mv", "rename", "metadata"
+        "cd", "exit", "rmdir", "ls", "mkdir", "mv", "rename", "metadata", "lsdir", "lsd"
     };
     public static final String[] DIRECTORY_COMMANDS = new String[] {
         "cd", "rmdir", "mv", "rename"
@@ -118,12 +118,14 @@ public class UserInterface {
                         System.out.print(cd(args.get(1)));
                         break;
                     case "exit": break;
+                    case "lsdir":
+                    case "lsd":
                     case "ls":
                         if(args.length != 1) {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
-                        ls();
+                        ls(!cmd.equals("ls"));
                         break;
                     case "mkdir":
                         if(args.length <= 1) {
@@ -234,8 +236,11 @@ public class UserInterface {
 
     }
     
-    public void ls() {
+    public void ls(boolean listOnlyDirectories) {
         List<DbFile> files = dirPath.getLast().getFiles();
+        if(listOnlyDirectories)
+            files = files.stream().filter(f -> f instanceof DirectoryBean)
+                    .collect(Collectors.toList());
         files.sort((DbFile o1, DbFile o2) -> {
             return o1.getName().compareTo(o2.getName());
         });
