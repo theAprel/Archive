@@ -42,7 +42,8 @@ import org.jline.reader.ParsedLine;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import aprel.db.beans.FileBean.MediaMetadata;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  *
@@ -59,13 +60,13 @@ public class UserInterface {
     
     public static final String[] COMMANDS = new String[] {
         "cd", "exit", "rmdir", "ls", "mkdir", "mv", "rename", "metadata", "lsdir", 
-        "lsd", "du"
+        "lsd", "du", "dub"
     };
     public static final String[] DIRECTORY_COMMANDS = new String[] {
         "cd", "rmdir", "mv", "rename"
     };
     public static final String[] FILE_COMMANDS = new String[] {
-        "mv", "rename", "metadata", "du"
+        "mv", "rename", "metadata", "du", "dub"
     };
     
     public UserInterface(DirectoryBean catalog, ArchiveDatabase database, boolean useConsole) throws IOException {
@@ -180,18 +181,31 @@ public class UserInterface {
                                 });
                         
                         break;
+                    case "dub":
                     case "du":
                         if(args.length > 2) {
                             System.out.println(ILLEGAL_NUMBER_OF_ARGUMENTS);
                             break;
                         }
                         if(args.length == 1) { //list size of all files in this dir
-                            System.out.println(size());
+                            if(args.get(0).equals("dub"))
+                                System.out.println(size().getBinaryOptimalRepresentation());
+                            else
+                                System.out.println(size().getBase10OptimalRepresentation());
                         }
                         else { //size of particular file
-                            long fileSize = size(args.get(1));
-                            if(fileSize == -1L) System.out.println("Not a file");
-                            else System.out.println(fileSize);
+                            Size fileSize;
+                            try {
+                                fileSize = size(args.get(1));
+                            }
+                            catch(IllegalArgumentException ex) {
+                                System.out.println(ex.getMessage());
+                                break;
+                            }
+                            if(args.get(0).equals("dub"))
+                                System.out.println(fileSize.getBinaryOptimalRepresentation());
+                            else
+                                System.out.println(fileSize.getBase10OptimalRepresentation());
                         }
                         break;
                     case "printargs": //debugging command for arg parser
@@ -205,6 +219,91 @@ public class UserInterface {
         }
         catch(UserInterruptException interrupted) {
             System.out.println("Closing...");
+        }
+    }
+    
+    public static class Size {
+        
+        public enum Unit {
+            BYTES("b", 1L), 
+            KILOBYTES("kb", 1000L), 
+            MEGABYTES("Mb", 1000L * 1000L), 
+            GIGABYTES("Gb", 1000L * 1000L * 1000L), 
+            TERABYTES("Tb", 1000L * 1000L * 1000L * 1000L), 
+            PETABYTES("Pb", 1000L * 1000L * 1000L * 1000L * 1000L),
+            
+            KIBIBYTES("kib", 1024L), 
+            MEBIBYTES("Mib", 1024L * 1024L), 
+            GIBIBYTES("Gib", 1024L * 1024L * 1024L), 
+            TEBIBYTES("Tib", 1024L * 1024L * 1024L * 1024L), 
+            PEBIBYTES("Pib", 1024L * 1024L * 1024L * 1024L * 1024L);
+            
+            public static final Unit[] BASE_10 = new Unit[] {
+                BYTES, KILOBYTES, MEGABYTES, GIGABYTES, TERABYTES, PETABYTES
+            };
+            public static final Unit[] BINARY = new Unit[] {
+                BYTES, KIBIBYTES, MEBIBYTES, GIBIBYTES, TEBIBYTES, PEBIBYTES
+            };
+            
+            private final String symbol;
+            private final long bytes;
+            
+            private Unit(String symbol, long bytesPerUnit) {
+                this.symbol = symbol;
+                this.bytes = bytesPerUnit;
+            }
+            
+            public String getSymbol() {
+                return symbol;
+            }
+            
+            public long getBytesPerUnit() {
+                return bytes;
+            }
+        }
+        
+        private final long size;
+        
+        public Size(long bytes) {
+            size = bytes;
+        }
+        
+        public long inBytes() {
+            return size;
+        }
+        
+        public Representation getBinaryOptimalRepresentation() {
+            return new Representation(size, getOptimalUnit(Unit.BINARY));
+        }
+        
+        public Representation getBase10OptimalRepresentation() {
+            return new Representation(size, getOptimalUnit(Unit.BASE_10));
+        }
+        
+        private Unit getOptimalUnit(Unit[] base) {
+            Unit lastUnit = Unit.BYTES;
+            for(Unit unit : base) {
+                if(size/unit.getBytesPerUnit() <= 0)
+                    return lastUnit;
+                else lastUnit = unit;
+            }
+            return lastUnit;
+        }
+        
+        public class Representation {
+            private final BigDecimal value;
+            private final Unit unit;
+
+            public Representation(long bytes, Unit unit) {
+                this.unit = unit;
+                value = new BigDecimal(size).divide(new BigDecimal(unit.getBytesPerUnit()));
+            }
+
+            @Override
+            public String toString() {
+                return value.setScale(unit == Unit.BYTES ? 0 : 2, 
+                        RoundingMode.CEILING).toPlainString() + unit.getSymbol();
+            }
         }
     }
     
@@ -328,19 +427,21 @@ public class UserInterface {
         return toReturn;
     }
     
-    public long size() {
-        return filesCompleter.getFiles().stream().mapToLong(FileBean::getSize).sum();
+    public Size size() {
+        return new Size(filesCompleter.getFiles().stream()
+                .mapToLong(FileBean::getSize).sum());
     }
     
     /**
      * 
      * @param filename
-     * @return the size of the file, or -1 if no file by such name
+     * @return the size of the file
+     * @throws IllegalArgumentException if no file by that name
      */
-    public long size(String filename) {
+    public Size size(String filename) throws IllegalArgumentException {
         FileBean f = filesCompleter.getFileByName(filename);
-        if(f == null) return -1L;
-        else return f.getSize();
+        if(f == null) throw new IllegalArgumentException("No file by name " + filename);
+        else return new Size(f.getSize());
     }
     
     public static void main(String[] args) throws Exception {
