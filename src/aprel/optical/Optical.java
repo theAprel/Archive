@@ -37,7 +37,7 @@ public class Optical {
     protected final List<Part> parts;
     protected long spaceRemaining;
     
-    public static final long MAX_BYTES = 25L * 1000L * 1000L * 1000L; //Bluray
+    public static final long MAX_BYTES = 25_025_314_816L; //Bluray
     public static final int OVERHEAD = 2 * 1000 * 1000;
     public static final long PAYLOAD_SPACE = MAX_BYTES - OVERHEAD;
     @SuppressWarnings("deprecation")
