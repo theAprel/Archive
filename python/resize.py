@@ -4,18 +4,28 @@ import sys
 from glob import glob
 import codecs
 
-def resize(filename, directory):
+def resize(filename, directory, md5sumFile):
     glob_files = glob(os.path.join(directory, u'*'))
 
     xmldoc = minidom.parse(filename)
     xml_files = xmldoc.getElementsByTagName('FILE')
+
+    md5 = {}
+    with codecs.open(md5sumFile, 'r', encoding='utf-8') as f:
+        content = [x.strip('\n') for x in f.readlines()]
+    for line in content:
+        parts = line.split('  ')
+        md5[parts[1]] = parts[0]
+
     for f in xml_files:
         path = f.attributes['path'].value
-        f.getElementsByTagName('SIZE').item(0).childNodes[0].nodeValue = os.path.getsize(os.path.join(directory, path))
-        print f.getElementsByTagName('MD5').item(0).childNodes[0].nodeValue, '  ', path
+        newPath = path[:-3] + 'mkv'
+        f.attributes['path'].value = newPath
+        f.getElementsByTagName('SIZE').item(0).childNodes[0].nodeValue = os.path.getsize(os.path.join(directory, newPath))
+        f.getElementsByTagName('MD5').item(0).childNodes[0].nodeValue = md5[newPath]
         found_it = False
         for full_path in glob_files[:]:
-            if full_path.endswith(path):
+            if full_path.endswith(newPath):
                 glob_files.remove(full_path)
                 found_it = True
                 break #in case of dup file names over dirs, remove only one
@@ -29,6 +39,6 @@ def resize(filename, directory):
         
     
 if __name__ == "__main__":
-    print "Usage: resize.py <METADATA.xml file> <directory of files>"
-    resize(sys.argv[1], sys.argv[2])
+    print "Usage: resize.py <METADATA.xml file> <directory of files> <converted MD5 checksum file>"
+    resize(sys.argv[1], sys.argv[2], sys.argv[3])
 
