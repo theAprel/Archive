@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -141,7 +142,24 @@ public class Verifier implements FileVisitor<Path> {
         parentFileIdsToPartsInDb.asMap().forEach((parent, children) -> {
             if(!children.isEmpty()) {
                 final int totalInSet = children.stream().findAny().get().getTotalInSet();
+                if(children.size() > totalInSet) {
+                    System.err.println("Detected illegal database state: Database contains "
+                            + "duplicate parts. Declining to mark files as verified. "
+                            + "The following file has duplicate parts: " + parent);
+                    return;
+                }
                 if(children.size() == totalInSet) {
+                    int[] ordinals = children.stream().mapToInt(Part::getOrdinal).toArray();
+                    Arrays.sort(ordinals);
+                    for(int i = 1; i <= totalInSet; i++) {
+                        if(ordinals[i-1] != i) {
+                            System.err.println("Missing ordinal part of file. Was expected " 
+                                    + i + "th part in set, but found " + ordinals[i-1] + 
+                                    "th instead. Declining to mark any files as verified. "
+                                            + "File that has missing parts: "  + parent);
+                            return;
+                        }
+                    }
                     if(children.stream().allMatch(Part::isMd5Verified)) {
                         fullyVerifiedIds.add(parent);
                     }
