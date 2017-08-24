@@ -333,6 +333,13 @@ public class Isoifier {
             transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
             StreamResult result = new StreamResult(leftoverXmlFile);
             transformer.transform(jsource, result);
+            //leftovers have to be marked as onOptical; otherwise, they will be
+            //gathered again on the next invocation and written twice. This only
+            //happens when leftovers are from small files that do not span
+            //multiple disks
+            List<Part> leftoversOnLastOptical = leftoverOptical.getParts();
+            ins.updateFilesOnOptical(leftoversOnLastOptical.stream().map(Part::getParentFileId)
+                    .collect(Collectors.toList()));
         }
         
         db.close();
