@@ -1,5 +1,6 @@
 from xml.dom import minidom
 from subprocess import call
+import subprocess
 import os
 import sys
 
@@ -56,9 +57,25 @@ def truncate_and_convert(is_animated):
         if to_be_truncated:
             hvec_arg.insert(3, str(truncate_to) + ':00')
             hvec_arg.insert(3, '-t')
+        # Check resolution as a proxy to determine whether interlaced and apply filtering accordingly
+        is_progressive = False
+        is_interlaced = False
+        check_resoltion_process = subprocess.Popen(['ffprobe', path], stderr=subprocess.PIPE)
+        for line in iter(check_resoltion_process.stderr.readline, ''):
+            if '1280x720' in line:
+                is_progressive = True
+                break
+            if '1920x1080' in line:
+                is_interlaced = True
+                break
+        if not (is_progressive ^ is_interlaced):
+            raise RuntimeError("Illegal state from ffprobe: is_interlaced: " + str(is_interlaced) + " is_progressive: "
+                               + str(is_progressive))
+        if is_interlaced:
+            hvec_arg.insert(3, 'yadif')
+            hvec_arg.insert(3, '-vf')
         print ' '.join(hvec_arg)
         call(hvec_arg)
-
 
 
 if __name__ == "__main__":
