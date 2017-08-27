@@ -72,7 +72,7 @@ def truncate_and_convert(is_animated):
             raise RuntimeError("Illegal state from ffprobe: is_interlaced: " + str(is_interlaced) + " is_progressive: "
                                + str(is_progressive))
         if is_interlaced:
-            hvec_arg.insert(3, 'yadif')
+            hvec_arg.insert(3, 'yadif=1')
             hvec_arg.insert(3, '-vf')
         print ' '.join(hvec_arg)
         call(hvec_arg)
