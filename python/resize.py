@@ -5,9 +5,11 @@ from glob import glob
 import codecs
 
 def resize(filename, directory, md5sumFile):
-    glob_files = glob(os.path.join(directory, u'*'))
+    glob_files = glob(os.path.join(directory, u'**'), recursive=True)
 
-    xmldoc = minidom.parse(filename)
+    with codecs.open(filename, 'r', encoding='utf-8') as f:
+        metadata_file_contents = f.read()
+    xmldoc = minidom.parseString(metadata_file_contents)
     xml_files = xmldoc.getElementsByTagName('FILE')
 
     md5 = {}
@@ -32,13 +34,13 @@ def resize(filename, directory, md5sumFile):
         if not found_it:
             raise ValueError('No matching file was found on glob path', path)
     if len(glob_files) != 0:
-        raise AssertionError('Not all files found: ' + str(glob_files))
+        print("WARNING: The following files were expected by glob, but not found" + str(glob_files))
     with codecs.open(filename[:-4] + '-NEW.xml', 'w', encoding='utf-8') as writer:
         xmldoc.writexml(writer)
 
         
     
 if __name__ == "__main__":
-    print "Usage: resize.py <METADATA.xml file> <directory of files> <converted MD5 checksum file>"
+    print("Usage: resize.py <METADATA.xml file> <directory of files> <converted MD5 checksum file>")
     resize(sys.argv[1], sys.argv[2], sys.argv[3])
 
