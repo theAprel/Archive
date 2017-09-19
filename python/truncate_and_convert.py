@@ -45,7 +45,7 @@ def truncate_and_convert(is_animated):
             duration = Duration(duration_string)
             if duration.should_truncate():
                 to_be_truncated = True
-        hvec_arg = ['ffmpeg', '-i', path, '-c:v', 'hevc_nvenc', '-profile:v', 'main10', '-preset',
+        hvec_arg = ['ffmpeg', '-n', '-i', path, '-c:v', 'hevc_nvenc', '-profile:v', 'main10', '-preset',
                     'slow', '-rc', 'vbr', '-c:a', 'copy', '-sn', output_dir + os.path.sep + path[:-3] + 'mkv']
         if is_animated:
             # Intended for streams that have multi-audio; remove -map args otherwise
@@ -55,8 +55,8 @@ def truncate_and_convert(is_animated):
             for a in animated_args:
                 hvec_arg.insert(7, a)
         if to_be_truncated:
-            hvec_arg.insert(3, str(truncate_to) + ':00')
-            hvec_arg.insert(3, '-t')
+            hvec_arg.insert(4, str(truncate_to) + ':00')
+            hvec_arg.insert(4, '-t')
         # Check resolution as a proxy to determine whether interlaced and apply filtering accordingly
         is_progressive = False
         is_interlaced = False
@@ -72,8 +72,8 @@ def truncate_and_convert(is_animated):
             raise RuntimeError("Illegal state from ffprobe: is_interlaced: " + str(is_interlaced) + " is_progressive: "
                                + str(is_progressive))
         if is_interlaced:
-            hvec_arg.insert(3, 'yadif=1')
-            hvec_arg.insert(3, '-vf')
+            hvec_arg.insert(4, 'yadif=1')
+            hvec_arg.insert(4, '-vf')
         print ' '.join(hvec_arg)
         call(hvec_arg)
 
