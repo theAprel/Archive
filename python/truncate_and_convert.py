@@ -1,3 +1,4 @@
+from exceptions import KeyboardInterrupt
 from xml.dom import minidom
 from subprocess import call
 import subprocess
@@ -45,8 +46,9 @@ def truncate_and_convert(is_animated):
             duration = Duration(duration_string)
             if duration.should_truncate():
                 to_be_truncated = True
+        converted_file = output_dir + os.path.sep + path[:-3] + 'mkv'
         hvec_arg = ['ffmpeg', '-n', '-i', path, '-c:v', 'hevc_nvenc', '-profile:v', 'main10', '-preset',
-                    'slow', '-rc', 'vbr', '-c:a', 'copy', '-sn', output_dir + os.path.sep + path[:-3] + 'mkv']
+                    'slow', '-rc', 'vbr', '-c:a', 'copy', '-sn', converted_file]
         if is_animated:
             # Intended for streams that have multi-audio; remove -map args otherwise
             animated_command = '-pixel_format p010le -map 0:v -map 0:a'
@@ -75,7 +77,15 @@ def truncate_and_convert(is_animated):
             hvec_arg.insert(4, 'yadif=1')
             hvec_arg.insert(4, '-vf')
         print ' '.join(hvec_arg)
-        call(hvec_arg)
+        try:
+            call(hvec_arg)
+        except KeyboardInterrupt:
+            print "Process interrupted by user. Deleting incompletely converted file and exiting."
+            os.remove(converted_file)
+            sys.exit()
+        except:
+            print "Unrecognized exception during ffmpeg call."
+            raise
 
 
 if __name__ == "__main__":
