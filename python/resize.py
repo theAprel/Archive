@@ -24,7 +24,13 @@ def resize(filename, directory, md5sumFile):
         newPath = path[:-3] + 'mkv'
         f.attributes['path'].value = newPath
         f.getElementsByTagName('SIZE').item(0).childNodes[0].nodeValue = os.path.getsize(os.path.join(directory, newPath))
-        f.getElementsByTagName('MD5').item(0).childNodes[0].nodeValue = md5[newPath]
+        if f.getElementsByTagName('MD5').item(0) is None:  # In case the METADATA file was generated w/o checksums
+            new_md5_element = xmldoc.createElement('MD5')
+            text_node = xmldoc.createTextNode(md5[newPath])
+            new_md5_element.appendChild(text_node)
+            f.appendChild(new_md5_element)
+        else:
+            f.getElementsByTagName('MD5').item(0).childNodes[0].nodeValue = md5[newPath]
         found_it = False
         for full_path in glob_files[:]:
             if full_path.endswith(newPath):
