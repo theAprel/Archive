@@ -55,7 +55,7 @@ def truncate_and_convert(is_animated):
             animated_args = animated_command.split(' ')
             animated_args.reverse()
             for a in animated_args:
-                hvec_arg.insert(7, a)
+                hvec_arg.insert(8, a)
         if to_be_truncated:
             hvec_arg.insert(4, str(truncate_to) + ':00')
             hvec_arg.insert(4, '-t')
