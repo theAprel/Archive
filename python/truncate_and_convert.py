@@ -32,7 +32,7 @@ class Duration:
         return False
 
 
-def truncate_and_convert(is_animated):
+def truncate_and_convert(is_animated, should_crop):
     xml = minidom.parse('METADATA.xml')
     filelist = xml.getElementsByTagName('FILE')
     if not os.path.exists(output_dir):
@@ -59,6 +59,9 @@ def truncate_and_convert(is_animated):
         if to_be_truncated:
             hvec_arg.insert(4, str(truncate_to) + ':00')
             hvec_arg.insert(4, '-t')
+        if should_crop:
+            hvec_arg.insert(4, 'crop=ih/3*4:ih')
+            hvec_arg.insert(4, '-filter:v')
         # Check resolution as a proxy to determine whether interlaced and apply filtering accordingly
         is_progressive = False
         is_interlaced = False
@@ -91,5 +94,5 @@ def truncate_and_convert(is_animated):
 if __name__ == "__main__":
     print "Usage: truncate_and_convert.py (must be called in directory with METADATA.xml)"
     print "Converts all files in METADATA.xml to HEVC and truncates to 32 minutes if they have specific length"
-    print "Specify `anime` as argument for animated media"
-    truncate_and_convert(len(sys.argv) > 1 and sys.argv[1] == 'anime')
+    print "Specify `anime` as argument for animated media, or `crop` to crop to 4:3"
+    truncate_and_convert(len(sys.argv) > 1 and sys.argv[1] == 'anime', len(sys.argv) > 1 and sys.argv[1] == 'crop')
