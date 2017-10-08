@@ -25,6 +25,6 @@ import org.skife.jdbi.v2.sqlobject.SqlUpdate;
  * @author Aprel
  */
 public interface Delete {
-    @SqlUpdate("DELETE FROM directories WHERE dirName=:dirName")
+    @SqlUpdate("DELETE FROM directories WHERE id=:id")
     public void deleteDir(@BindBean DirectoryBean dir);
 }
