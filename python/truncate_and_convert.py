@@ -75,7 +75,7 @@ def truncate_and_convert(is_animated, should_crop):
                 break
         if not (is_progressive ^ is_interlaced):
             raise RuntimeError("Illegal state from ffprobe: is_interlaced: " + str(is_interlaced) + " is_progressive: "
-                               + str(is_progressive))
+                               + str(is_progressive) + ' for file ' + path)
         if is_interlaced:
             hvec_arg.insert(4, 'yadif=1')
             hvec_arg.insert(4, '-vf')
