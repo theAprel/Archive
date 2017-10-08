@@ -32,7 +32,8 @@ public class Delegator {
         CONSOLE("Console", UserInterface.class),
         ISOIFY("Isoify", Isoifier.class),
         VERIFY("Verify", Verifier.class),
-        RECLAIM("Reclaim", Reclaimer.class);
+        RECLAIM("Reclaim", Reclaimer.class),
+        TESTER("Test", DbIntegrityTester.class);
         
         private final String consoleCommand;
         private final Class<?> programClass;
@@ -72,6 +73,7 @@ public class Delegator {
             case ISOIFY: Isoifier.main(passArgs); break;
             case VERIFY: Verifier.main(passArgs); break;
             case RECLAIM: Reclaimer.main(passArgs); break;
+            case TESTER: DbIntegrityTester.main(passArgs); break;
         }
     }
     
@@ -104,5 +106,8 @@ public class Delegator {
         System.out.println();
         System.out.println(Program.CONSOLE.getConsoleCommand());
         System.out.println("Console-based UI");
+        System.out.println();
+        System.out.println(Program.TESTER.getConsoleCommand());
+        System.out.println("Runs tests on the database to verify integrity");
     }
 }
